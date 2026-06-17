@@ -9,6 +9,12 @@ node_modules/
 dist/
 out/
 coverage/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# circle wallet recovery file (Phase 3) — never commit
+circle-recovery.dat
 
 # foundry
 contracts/out/
