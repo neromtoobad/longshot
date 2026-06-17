@@ -18,6 +18,7 @@
     "broker:demo": "pnpm --filter @longshot/agent broker:demo",
     "template:test": "pnpm --filter @longshot/agent template:test",
     "predict:test": "pnpm --filter @longshot/agent predict:test",
+    "run:pool": "pnpm --filter @longshot/agent run:pool",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

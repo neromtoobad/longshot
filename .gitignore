@@ -17,6 +17,9 @@ next-env.d.ts
 circle-recovery.dat
 recovery_file_*.dat
 
+# runtime data store (agents, predictions) — local, not committed
+.data/
+
 # foundry
 contracts/out/
 contracts/cache/

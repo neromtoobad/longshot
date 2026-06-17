@@ -5,6 +5,9 @@
 
 export * from "./template.js";
 export * from "./predict.js";
+export * from "./runner.js";
+export * from "./store.js";
+export * from "./pool-client.js";
 export * from "./model/venice.js";
 export * from "./wallet.js";
 export * from "./paying/signers.js";

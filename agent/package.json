@@ -23,6 +23,7 @@
     "broker:demo": "tsx --env-file=../.env scripts/broker-demo.ts",
     "template:test": "tsx scripts/template-test.ts",
     "predict:test": "tsx scripts/predict-test.ts",
-    "model:ping": "tsx --env-file=../.env scripts/model-ping.ts"
+    "model:ping": "tsx --env-file=../.env scripts/model-ping.ts",
+    "run:pool": "tsx --env-file=../.env scripts/run-pool.ts"
   }
 }
