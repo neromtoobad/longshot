@@ -84,6 +84,59 @@ export async function fundFromDeployer(to: Address, amount: bigint): Promise<`0x
   });
 }
 
+// --- gateway deposit (for DCW wallets) -------------------------------------
+
+const GATEWAY_WALLET_ADDRESS = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
+
+async function waitForCircleTx(challengeId: string): Promise<string> {
+  const client = circleClient();
+  for (;;) {
+    const res = await client.getTransaction({ id: challengeId });
+    const tx = res.data?.transaction;
+    if (tx?.state === "CONFIRMED" || tx?.state === "COMPLETE") {
+      if (!tx.txHash) throw new Error(`tx ${challengeId} ${tx.state} but no txHash`);
+      return tx.txHash;
+    }
+    if (tx?.state === "FAILED") throw new Error(`tx ${challengeId} failed: ${tx.errorReason}`);
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
+/**
+ * Deposit USDC from a DCW wallet into the Gateway Wallet contract so the agent can pay x402
+ * nanopayments (Gateway spends from this deposited balance, not the EOA). approve then deposit,
+ * each a Circle contract-execution tx. The other half of provisioning, alongside funding the EOA.
+ * NOTE: not yet exercised live (Phase 3.3 proves the buyer with a pre-funded deployer); agents
+ * use this in Phase 4.
+ */
+export async function depositToGateway(
+  walletId: string,
+  amount: bigint,
+): Promise<{ approveTx: string; depositTx: string }> {
+  const client = circleClient();
+  const fee = { type: "level" as const, config: { feeLevel: "HIGH" as const } };
+
+  const approve = await client.createContractExecutionTransaction({
+    walletId,
+    contractAddress: USDC_ADDRESS,
+    abiFunctionSignature: "approve(address,uint256)",
+    abiParameters: [GATEWAY_WALLET_ADDRESS, amount.toString()],
+    fee,
+  });
+  const approveTx = await waitForCircleTx(approve.data?.id ?? "");
+
+  const deposit = await client.createContractExecutionTransaction({
+    walletId,
+    contractAddress: GATEWAY_WALLET_ADDRESS,
+    abiFunctionSignature: "deposit(address,uint256)",
+    abiParameters: [USDC_ADDRESS, amount.toString()],
+    fee,
+  });
+  const depositTx = await waitForCircleTx(deposit.data?.id ?? "");
+
+  return { approveTx, depositTx };
+}
+
 // --- budget cap ------------------------------------------------------------
 
 export interface BudgetOk {
