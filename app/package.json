@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "x402:smoke": "tsx --env-file=../.env scripts/x402-smoke.ts"
+    "x402:smoke": "tsx --env-file=../.env scripts/x402-smoke.ts",
+    "fixtures:sync": "tsx scripts/fixtures-sync.ts"
   },
   "dependencies": {
     "@circle-fin/x402-batching": "^3.0.4",

@@ -19,6 +19,7 @@
     "template:test": "pnpm --filter @longshot/agent template:test",
     "predict:test": "pnpm --filter @longshot/agent predict:test",
     "run:pool": "pnpm --filter @longshot/agent run:pool",
+    "fixtures:sync": "pnpm --filter @longshot/app fixtures:sync",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
