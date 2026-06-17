@@ -20,7 +20,7 @@ export function ConnectWallet() {
       <button
         onClick={() => connector && connect({ connector })}
         disabled={isPending}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accentink shadow-[0_0_20px_-4px] shadow-accent/50 transition hover:opacity-90 disabled:opacity-50"
+        className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accentink transition hover:opacity-90 disabled:opacity-50"
       >
         {isPending ? "Connecting…" : "Connect wallet"}
       </button>
@@ -31,7 +31,7 @@ export function ConnectWallet() {
     return (
       <button
         onClick={() => switchChain({ chainId: arcChain.id })}
-        className="rounded-lg border border-amber/50 bg-amber/10 px-4 py-2 text-sm font-medium text-amber"
+        className="w-full rounded-xl border border-gold/50 bg-gold/10 px-4 py-2.5 text-sm font-medium text-gold"
       >
         Switch to Arc
       </button>
@@ -39,17 +39,19 @@ export function ConnectWallet() {
   }
 
   return (
-    <button
-      onClick={() => disconnect()}
-      title="Disconnect"
-      className="group flex items-center gap-2 rounded-lg border border-line2 bg-surface px-3 py-1.5 text-sm transition hover:border-neg/50"
-    >
-      <span className="h-2 w-2 rounded-full bg-pos shadow-[0_0_8px] shadow-pos" />
-      <span className="mono text-xs text-ink2">
-        {bal ? `${Number(bal.formatted).toFixed(2)} USDC` : "—"}
-      </span>
-      <span className="mono text-xs text-ink group-hover:hidden">{short(address!)}</span>
-      <span className="mono hidden text-xs text-neg group-hover:inline">disconnect</span>
-    </button>
+    <div className="glass p-3">
+      <div className="flex items-center justify-between">
+        <span className="mono text-[10px] uppercase tracking-wider text-ink3">balance</span>
+        <button onClick={() => disconnect()} className="mono text-[10px] text-ink3 transition hover:text-neg">
+          disconnect
+        </button>
+      </div>
+      <div className="mono mt-1 text-lg font-semibold text-accent">
+        {bal ? `${Number(bal.formatted).toFixed(2)}` : "—"} <span className="text-xs text-ink2">USDC</span>
+      </div>
+      <div className="mono mt-1 flex items-center gap-1.5 text-[11px] text-ink2">
+        <span className="live-dot h-1.5 w-1.5 rounded-full bg-pos" /> {short(address!)}
+      </div>
+    </div>
   );
 }
