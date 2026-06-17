@@ -36,7 +36,66 @@ const poolAbi = [
       { name: "awayScore", type: "uint8" },
     ],
   },
+  {
+    type: "function",
+    name: "getPool",
+    stateMutability: "view",
+    inputs: [{ name: "poolId", type: "uint256" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "tournament", type: "string" },
+          { name: "entryFee", type: "uint256" },
+          { name: "budgetPerAgent", type: "uint256" },
+          { name: "prizeSplitBps", type: "uint16[]" },
+          { name: "status", type: "uint8" },
+          { name: "prizePool", type: "uint256" },
+          { name: "agentIds", type: "uint256[]" },
+        ],
+      },
+    ],
+  },
 ] as const;
+
+export interface PoolInfo {
+  tournament: string;
+  entryFee: string;
+  budgetPerAgent: string;
+  prizeSplitBps: number[];
+  status: "open" | "closed" | "finalized";
+  prizePool: string;
+  onChainAgentCount: number;
+}
+
+const POOL_STATUS = ["open", "closed", "finalized"] as const;
+
+export async function readPoolInfo(poolId: bigint): Promise<PoolInfo> {
+  const p = (await createArcPublicClient().readContract({
+    address: poolAddress(),
+    abi: poolAbi,
+    functionName: "getPool",
+    args: [poolId],
+  })) as {
+    tournament: string;
+    entryFee: bigint;
+    budgetPerAgent: bigint;
+    prizeSplitBps: readonly number[];
+    status: number;
+    prizePool: bigint;
+    agentIds: readonly bigint[];
+  };
+  return {
+    tournament: p.tournament,
+    entryFee: p.entryFee.toString(),
+    budgetPerAgent: p.budgetPerAgent.toString(),
+    prizeSplitBps: [...p.prizeSplitBps],
+    status: POOL_STATUS[p.status] ?? "open",
+    prizePool: p.prizePool.toString(),
+    onChainAgentCount: p.agentIds.length,
+  };
+}
 
 function poolAddress(): Address {
   const path = resolvePath(process.cwd(), process.env.ADDRESSES_PATH ?? "../shared/addresses.arc.json");

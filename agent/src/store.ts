@@ -5,12 +5,14 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Address, Bytes32 } from "@longshot/shared";
+import type { Address, Bytes32, Fixture, Purchase } from "@longshot/shared";
 import { compileTemplate, type AgentConfig, type AgentTemplate } from "./template.js";
 
 const DATA_DIR = resolve(process.cwd(), process.env.LONGSHOT_DATA_DIR ?? ".data");
 const AGENTS = resolve(DATA_DIR, "agents.json");
 const PREDICTIONS = resolve(DATA_DIR, "predictions.json");
+const FIXTURES = resolve(DATA_DIR, "fixtures.json");
+const PURCHASES = resolve(DATA_DIR, "purchases.json");
 
 function readJson<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -79,4 +81,22 @@ export function spentByAgent(agentId: string): bigint {
   return allPredictions()
     .filter((p) => p.agentId === agentId)
     .reduce((sum, p) => sum + BigInt(p.spent), 0n);
+}
+
+/** Read synced fixtures (written by fixtures:sync) — same file the app uses. */
+export function readFixtures(): Fixture[] {
+  return readJson<Fixture[]>(FIXTURES, []);
+}
+
+/** Append purchase records (the nanopayments) for /stats. */
+export function savePurchases(purchases: Purchase[]): void {
+  if (purchases.length === 0) return;
+  const all = readJson<Purchase[]>(PURCHASES, []);
+  const seen = new Set(all.map((p) => p.id));
+  for (const p of purchases) if (!seen.has(p.id)) all.push(p);
+  writeJson(PURCHASES, all);
+}
+
+export function allStoredPurchases(): Purchase[] {
+  return readJson<Purchase[]>(PURCHASES, []);
 }

@@ -6,7 +6,7 @@
 
 import { formatUnits } from "viem";
 import type { AgentTemplate } from "../src/template.ts";
-import { agentsInPool, saveAgent } from "../src/store.ts";
+import { agentsInPool, saveAgent, readFixtures } from "../src/store.ts";
 import { runPool, type RunnableAgent } from "../src/runner.ts";
 import type { BuyEvidenceResult } from "../src/paying/client.ts";
 import { veniceJson } from "../src/model/venice.ts";
@@ -69,11 +69,20 @@ if (agentsInPool(poolId).length === 0) {
 
 const agents = agentsInPool(poolId) as RunnableAgent[];
 
-// Upcoming World Cup fixtures (stub here; real ESPN sync is Phase 5).
-const fixtures = [
-  { id: "wc-r32-1", home: "Brazil", away: "Croatia" },
-  { id: "wc-r32-2", home: "Argentina", away: "Nigeria" },
-];
+// Real World Cup fixtures from the synced store (run `pnpm fixtures:sync` first). For this seed we
+// predict the already-FINAL fixtures so the leaderboard scores immediately; a live matchday round
+// would select upcoming fixtures (status "scheduled") ahead of kickoff.
+const FIXTURE_LIMIT = Number(process.env.RUN_POOL_FIXTURES ?? 3);
+const want = process.env.RUN_POOL_STATUS ?? "final";
+const fixtures = readFixtures()
+  .filter((f) => f.status === want)
+  .slice(0, FIXTURE_LIMIT)
+  .map((f) => ({ id: f.id, home: f.home, away: f.away }));
+
+if (fixtures.length === 0) {
+  console.error(`no '${want}' fixtures in the store — run pnpm fixtures:sync first`);
+  process.exit(1);
+}
 
 // --- TEST MODE deps: stub payment (test-mode spend), real Venice model -----
 const PRICES: Record<string, bigint> = { form: 3000n, odds: 5000n, injuries: 2000n, h2h: 2000n };

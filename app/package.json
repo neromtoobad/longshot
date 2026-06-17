@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "x402:smoke": "tsx --env-file=../.env scripts/x402-smoke.ts",
-    "fixtures:sync": "tsx scripts/fixtures-sync.ts",
+    "fixtures:sync": "tsx --env-file=../.env scripts/fixtures-sync.ts",
     "resolve:pool": "tsx --env-file=../.env scripts/resolve-pool.ts"
   },
   "dependencies": {

@@ -7,7 +7,7 @@ import type { Bytes32 } from "@longshot/shared";
 import type { AgentConfig } from "./template.js";
 import { runPredictLoop, type PredictDeps, type PredictFixture, type PredictResult } from "./predict.js";
 import type { X402Signer } from "./paying/signers.js";
-import { hasPredicted as storeHasPredicted, savePrediction, spentByAgent, type AgentRecord } from "./store.js";
+import { hasPredicted as storeHasPredicted, savePrediction, savePurchases, spentByAgent, type AgentRecord } from "./store.js";
 
 export type RunnableAgent = AgentRecord & { config: AgentConfig };
 
@@ -67,6 +67,7 @@ export async function runPool(
           spent: res.spent.toString(),
           createdAt: new Date().toISOString(),
         });
+        savePurchases(res.purchases);
         await opts.onPrediction?.(poolId, agent, fixture.id, res.predictionHash);
         spentSoFar += res.spent;
         report.results.push(res);

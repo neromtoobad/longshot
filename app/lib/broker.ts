@@ -3,9 +3,14 @@
 // price through to the source — a 2-hop agent-to-agent payment chain. Tracks per-source reputation
 // (hit rate of served data vs outcomes) and broker revenue, both surfaced for /stats.
 
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { EvidenceSource } from "@longshot/shared";
 import { EVIDENCE_PRICES, priceToAtomic } from "./x402";
 import { formEvidence, oddsEvidence, injuriesEvidence, h2hEvidence } from "./evidence";
+
+const DATA_DIR = resolve(process.cwd(), process.env.LONGSHOT_DATA_DIR ?? ".data");
+const REVENUE_FILE = resolve(DATA_DIR, "broker.json");
 
 export const SOURCES: EvidenceSource[] = ["form", "odds", "injuries", "h2h"];
 
@@ -70,22 +75,31 @@ interface Rev {
   passthroughAtomic: number; // base, owed to the source
   revenueAtomic: number; // markup, kept by the broker
 }
-const revenue = new Map<EvidenceSource, Rev>();
+
+// File-backed so /stats reads real broker revenue across server restarts.
+function loadRevenue(): Record<string, Rev> {
+  if (!existsSync(REVENUE_FILE)) return {};
+  return JSON.parse(readFileSync(REVENUE_FILE, "utf-8")) as Record<string, Rev>;
+}
 
 export function recordBrokerSale(source: EvidenceSource, baseAtomic: number, markupAtomic: number): void {
-  const r = revenue.get(source) ?? { count: 0, passthroughAtomic: 0, revenueAtomic: 0 };
+  const all = loadRevenue();
+  const r = all[source] ?? { count: 0, passthroughAtomic: 0, revenueAtomic: 0 };
   r.count += 1;
   r.passthroughAtomic += baseAtomic;
   r.revenueAtomic += markupAtomic;
-  revenue.set(source, r);
+  all[source] = r;
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(REVENUE_FILE, JSON.stringify(all, null, 2));
 }
 
 export function brokerRevenue() {
+  const revenue = loadRevenue();
   let totalRevenue = 0;
   let totalPassthrough = 0;
   let totalSales = 0;
   const bySource = SOURCES.map((source) => {
-    const r = revenue.get(source) ?? { count: 0, passthroughAtomic: 0, revenueAtomic: 0 };
+    const r = revenue[source] ?? { count: 0, passthroughAtomic: 0, revenueAtomic: 0 };
     totalRevenue += r.revenueAtomic;
     totalPassthrough += r.passthroughAtomic;
     totalSales += r.count;

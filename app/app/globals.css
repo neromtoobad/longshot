@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+/* LONGSHOT design tokens — dark editorial. Fraunces (display) + Inter (body) + JetBrains Mono (data). */
+@theme {
+  --color-bg: #0b0d10;
+  --color-surface: #14171c;
+  --color-surface2: #1b1f26;
+  --color-line: #262b33;
+  --color-line2: #323945;
+  --color-ink: #e9ebee;
+  --color-ink2: #9aa3b0;
+  --color-ink3: #626b78;
+  --color-accent: #c2f23a;
+  --color-accentink: #0b0d10;
+  --color-pos: #4ade80;
+  --color-neg: #f87171;
+  --color-gold: #fbbf24;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+@layer components {
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid var(--color-line2);
+    color: var(--color-ink2);
+  }
+}
