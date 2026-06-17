@@ -58,6 +58,9 @@ export interface Fixture {
   poolId: string;
   home: string;
   away: string;
+  /** Team crest/logo URLs (from ESPN); null if unavailable. */
+  homeLogo: string | null;
+  awayLogo: string | null;
   kickoff: IsoTimestamp;
   status: FixtureStatus;
   /** Final home score; null until resolved. */

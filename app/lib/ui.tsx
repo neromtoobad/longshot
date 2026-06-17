@@ -30,7 +30,7 @@ export function Stat({
   return (
     <div className="glass p-5">
       <div className="mono text-[10px] uppercase tracking-wider text-ink3">{label}</div>
-      <div className={`mono mt-2 text-3xl font-semibold leading-none ${accent ? "text-accent glow-text" : "text-ink"}`}>
+      <div className={`num mt-2 text-3xl font-extrabold leading-none ${accent ? "text-accent2" : "text-ink"}`}>
         {value}
       </div>
       {sub && <div className="mt-2 text-xs text-ink2">{sub}</div>}

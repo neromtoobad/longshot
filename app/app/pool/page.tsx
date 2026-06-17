@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPoolView } from "@/lib/data";
 import { Avatar } from "@/components/Avatar";
+import { TeamLogo } from "@/components/TeamLogo";
 import { Empty, Pill, Stat, usdc } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -67,8 +68,10 @@ export default async function PoolPage() {
             <div className="glass divide-y divide-line">
               {fixtures.upcoming.slice(0, 8).map((f) => (
                 <div key={f.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <span>
-                    {f.home} <span className="text-ink3">vs</span> {f.away}
+                  <span className="flex items-center gap-2">
+                    <TeamLogo src={f.homeLogo} name={f.home} /> {f.home}
+                    <span className="text-ink3">vs</span>
+                    <TeamLogo src={f.awayLogo} name={f.away} /> {f.away}
                   </span>
                   <span className="mono text-xs text-ink2">{kickoff(f.kickoff)}</span>
                 </div>
@@ -84,11 +87,13 @@ export default async function PoolPage() {
             <div className="glass divide-y divide-line">
               {fixtures.final.slice(0, 10).map((f) => (
                 <div key={f.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <span>
-                    {f.home} <span className="text-ink3">vs</span> {f.away}
+                  <span className="flex items-center gap-2">
+                    <TeamLogo src={f.homeLogo} name={f.home} /> {f.home}
+                    <span className="text-ink3">vs</span>
+                    <TeamLogo src={f.awayLogo} name={f.away} /> {f.away}
                   </span>
-                  <span className="mono font-semibold text-accent">
-                    {f.homeScore}<span className="text-ink3">–</span>{f.awayScore}
+                  <span className="num font-bold">
+                    {f.homeScore}<span className="text-ink3">–</span><span className="text-accent2">{f.awayScore}</span>
                   </span>
                 </div>
               ))}

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getLeaderboard, getStats, getPoolView } from "@/lib/data";
-import { Card, Stat, Pill, usdc } from "@/lib/ui";
+import { Avatar } from "@/components/Avatar";
+import { TeamLogo } from "@/components/TeamLogo";
+import { Stat, Pill, usdc } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -13,76 +15,67 @@ export default async function Home() {
   const stats = getStats("1");
   const board = getLeaderboard("1").slice(0, 3);
   const pool = await getPoolView("1");
-  const results = pool.fixtures.final.slice(0, 5);
+  const results = pool.fixtures.final.slice(0, 6);
+  const featured = pool.entrants.slice(0, 8);
 
   return (
-    <div className="space-y-10">
-      {/* Hero + live pool snapshot */}
-      <section className="grid items-stretch gap-5 lg:grid-cols-[1.4fr_1fr]">
-        <div className="flex flex-col justify-center">
-          <p className="mono flex items-center gap-2 text-xs tracking-wider text-accent2">
-            <span className="live-dot h-1.5 w-1.5 rounded-full bg-accent2" /> LIVE ON ARC TESTNET
+    <div className="space-y-8">
+      {/* Hero banner */}
+      <section
+        className="relative overflow-hidden rounded-2xl border border-line p-8"
+        style={{ background: "linear-gradient(115deg, #225aeb 0%, #1b1b4d 48%, #07060e 100%)" }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{ background: "radial-gradient(600px 300px at 85% 20%, #4d7ef5, transparent 70%)" }}
+        />
+        <div className="relative z-10 max-w-2xl">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/80">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-white" /> Live on Arc testnet · {pool.info?.tournament ?? "World Cup"}
           </p>
-          <h1 className="mt-3 font-display text-5xl font-semibold leading-[1.04] tracking-tight">
-            build your longshot,
+          <h1 className="mt-3 text-5xl font-extrabold uppercase leading-[0.95] tracking-tight">
+            Build your
             <br />
-            <span className="text-accent glow-text">drop it in the pool.</span>
+            longshot.
           </h1>
-          <p className="mt-5 max-w-xl text-ink2">
-            Prediction agents that earn their rank by beating the favorites on real matches — and pay
-            their own way. Every stat an agent buys is a sub-cent USDC nanopayment on Arc. The real
-            call isn&apos;t the score, it&apos;s whether a $0.002 stat is worth buying.
+          <p className="mt-4 max-w-lg text-sm text-white/75">
+            Prediction agents that beat the favorites on real matches and pay their own way — every
+            stat they buy is a sub-cent USDC nanopayment on Arc.
           </p>
-          <div className="mt-7 flex gap-3">
-            <Link href="/build" className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accentink shadow-[0_0_24px_-6px] shadow-accent transition hover:opacity-90">
+          <div className="mt-6 flex gap-3">
+            <Link href="/build" className="rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-[#07060e] transition hover:opacity-90">
               Build an agent
             </Link>
-            <Link href="/leaderboard" className="rounded-lg border border-line2 px-5 py-2.5 text-sm text-ink transition hover:bg-surface">
-              View leaderboard
+            <Link href="/leaderboard" className="rounded-xl border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20">
+              Leaderboard
             </Link>
           </div>
         </div>
 
-        <Card className="flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="font-display text-lg font-semibold">{pool.info?.tournament ?? "World Cup"}</span>
-            <Pill tone="accent">{pool.info?.status ?? "open"}</Pill>
+        {featured.length > 0 && (
+          <div className="relative z-10 mt-7 flex flex-wrap gap-2">
+            {featured.map((a) => (
+              <Link key={a.agentId} href={`/agent/${a.agentId}`} title={a.template.name} className="transition hover:-translate-y-0.5">
+                <Avatar name={a.template.name} size={48} />
+              </Link>
+            ))}
           </div>
-          <div className="my-5 grid grid-cols-2 gap-4">
-            <div>
-              <div className="mono text-[10px] uppercase tracking-wider text-ink3">prize pool</div>
-              <div className="mono mt-1 text-2xl font-semibold text-accent">{pool.info ? usdc(pool.info.prizePool) : "—"}</div>
-            </div>
-            <div>
-              <div className="mono text-[10px] uppercase tracking-wider text-ink3">entrants</div>
-              <div className="mono mt-1 text-2xl font-semibold">{pool.entrants.length}</div>
-            </div>
-            <div>
-              <div className="mono text-[10px] uppercase tracking-wider text-ink3">entry</div>
-              <div className="mono mt-1 text-lg">{pool.info ? `${usdc(pool.info.entryFee)} USDC` : "—"}</div>
-            </div>
-            <div>
-              <div className="mono text-[10px] uppercase tracking-wider text-ink3">fixtures</div>
-              <div className="mono mt-1 text-lg">{pool.fixtures.upcoming.length + pool.fixtures.final.length}</div>
-            </div>
-          </div>
-          <Link href="/pool" className="mono text-xs text-accent2 hover:underline">enter the pool →</Link>
-        </Card>
+        )}
       </section>
 
       {/* Live metric band */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Avg transaction size" value={`$${usdc(stats.avgTxSize)}`} sub="sub-cent, every evidence buy" accent />
         <Stat label="Autonomous payments" value={stats.totalPayments.toLocaleString()} sub={`${usdc(stats.totalDataSpent)} USDC of data`} />
-        <Stat label="Agents in the league" value={stats.agentsRegistered} sub={`${stats.predictionsMade} predictions made`} />
-        <Stat label="Broker volume" value={`${stats.broker.totalRevenueUSDC} USDC`} sub={`agent → broker → source · depth ${stats.broker.paymentChainDepth}`} />
+        <Stat label="Prize pool" value={pool.info ? `${usdc(pool.info.prizePool)}` : "—"} sub={`${pool.entrants.length} agents entered`} />
+        <Stat label="Broker volume" value={`${stats.broker.totalRevenueUSDC}`} sub={`agent → broker → source · depth ${stats.broker.paymentChainDepth}`} />
       </section>
 
       {/* Top agents + recent results */}
       <section className="grid gap-5 lg:grid-cols-2">
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold">Top agents</h2>
+            <h2 className="text-xl font-bold">Top agents</h2>
             <Link href="/leaderboard" className="mono text-xs text-ink3 hover:text-ink">all →</Link>
           </div>
           <div className="glass divide-y divide-line">
@@ -90,15 +83,16 @@ export default async function Home() {
               <div className="p-6 text-center text-sm text-ink2">No scored agents yet.</div>
             ) : (
               board.map((r) => (
-                <Link key={r.agentId} href={`/agent/${r.agentId}`} className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-surface2">
+                <Link key={r.agentId} href={`/agent/${r.agentId}`} className="flex items-center justify-between px-4 py-3 transition hover:bg-surface2">
                   <div className="flex items-center gap-3">
-                    <span className="mono text-ink3">{r.rank}</span>
-                    <span className="font-medium">{r.name}</span>
+                    <span className="num w-4 text-ink3">{r.rank}</span>
+                    <Avatar name={r.name} size={32} />
+                    <span className="font-semibold">{r.name}</span>
                     <Pill tone={r.preferBroker ? "gold" : "muted"}>{r.preferBroker ? "broker" : "direct"}</Pill>
                   </div>
-                  <div className="mono flex items-center gap-5 text-sm">
+                  <div className="num flex items-center gap-5 text-sm">
                     <span className="text-ink2">{r.cumulativeScore} pts</span>
-                    <span className="text-accent">ROI {roiLabel(r.roi)}</span>
+                    <span className="font-bold text-accent2">ROI {roiLabel(r.roi)}</span>
                   </div>
                 </Link>
               ))
@@ -108,7 +102,7 @@ export default async function Home() {
 
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold">Recent results</h2>
+            <h2 className="text-xl font-bold">Latest results</h2>
             <Link href="/pool" className="mono text-xs text-ink3 hover:text-ink">all →</Link>
           </div>
           <div className="glass divide-y divide-line">
@@ -117,11 +111,14 @@ export default async function Home() {
             ) : (
               results.map((f) => (
                 <div key={f.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <span>
-                    {f.home} <span className="text-ink3">vs</span> {f.away}
+                  <span className="flex items-center gap-2">
+                    <TeamLogo src={f.homeLogo} name={f.home} /> {f.home}
+                    <span className="text-ink3">vs</span>
+                    <TeamLogo src={f.awayLogo} name={f.away} /> {f.away}
                   </span>
-                  <span className="mono font-semibold">
-                    {f.homeScore}<span className="text-ink3">–</span>{f.awayScore}
+                  <span className="num font-bold">
+                    {f.homeScore}<span className="text-ink3">–</span>
+                    <span className="text-accent2">{f.awayScore}</span>
                   </span>
                 </div>
               ))

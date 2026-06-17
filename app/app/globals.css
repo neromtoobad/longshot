@@ -1,26 +1,25 @@
 @import "tailwindcss";
 
-/* LONGSHOT — "dripit"-inspired: dark navy, periwinkle→indigo glossy gradients, soft rounded panels. */
+/* LONGSHOT — Fragbet-inspired esports palette: electric blue on near-black, Manrope. */
 @theme {
-  --color-bg: #0a0e1a;
-  --color-surface: #141a2b;
-  --color-surface2: #1b2238;
-  --color-line: #242d44;
-  --color-line2: #34405e;
-  --color-ink: #f2f4fa;
-  --color-ink2: #98a2c0;
-  --color-ink3: #5e6a89;
-  --color-accent: #9aa8f5;
-  --color-accentink: #0a0e1a;
-  --color-accent2: #c4cdfb;
-  --color-indigo: #818cf8;
-  --color-mint: #8ef0cf;
-  --color-pos: #4ade80;
+  --color-bg: #07060e;
+  --color-surface: #201e26;
+  --color-surface2: #2a2833;
+  --color-line: #312f3a;
+  --color-line2: #403d4b;
+  --color-ink: #ffffff;
+  --color-ink2: #9b9aa8;
+  --color-ink3: #6a6975;
+  --color-accent: #225aeb;
+  --color-accentink: #ffffff;
+  --color-accent2: #4d7ef5;
+  --color-amber: #fbbf24;
+  --color-pos: #34d399;
   --color-neg: #fb6f6f;
   --color-gold: #fbbf24;
 
-  --font-display: var(--font-fraunces), Georgia, serif;
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-manrope), system-ui, sans-serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
@@ -30,8 +29,8 @@
 
 body {
   background:
-    radial-gradient(1100px 600px at 18% -10%, color-mix(in srgb, var(--color-indigo) 14%, transparent), transparent 60%),
-    radial-gradient(900px 600px at 100% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 55%),
+    radial-gradient(1100px 600px at 15% -10%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 58%),
+    radial-gradient(900px 600px at 100% 0%, color-mix(in srgb, var(--color-accent2) 12%, transparent), transparent 55%),
     var(--color-bg);
   background-attachment: fixed;
   color: var(--color-ink);
@@ -43,9 +42,12 @@ body {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
-  /* Soft navy panel — the default card. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
   .glass {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, white 2%), var(--color-surface));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, white 3%), var(--color-surface));
     border: 1px solid var(--color-line);
     border-radius: 16px;
   }
@@ -53,19 +55,18 @@ body {
     transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   }
   .glass-hover:hover {
-    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-line2));
-    box-shadow: 0 14px 40px -24px var(--color-indigo);
+    border-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-line2));
+    box-shadow: 0 14px 44px -22px var(--color-accent);
     transform: translateY(-1px);
   }
-  /* Glossy periwinkle gradient — podium blocks + highlighted (top-3) rows. */
+  /* Electric-blue gradient — podium blocks + highlighted (top) rows. */
   .grad-hi {
-    background:
-      linear-gradient(180deg, color-mix(in srgb, white 22%, var(--color-accent)), var(--color-indigo));
-    color: #10152a;
+    background: linear-gradient(180deg, var(--color-accent2), var(--color-accent));
+    color: #ffffff;
   }
   .grad-hi-soft {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 30%, var(--color-surface)), color-mix(in srgb, var(--color-indigo) 18%, var(--color-surface)));
-    border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-line2));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 26%, var(--color-surface)), color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)));
+    border: 1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-line2));
   }
   .pill {
     display: inline-flex;
@@ -73,10 +74,9 @@ body {
     gap: 5px;
     padding: 3px 10px;
     border-radius: 999px;
-    font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
     text-transform: uppercase;
     border: 1px solid var(--color-line2);
     color: var(--color-ink2);
@@ -89,15 +89,12 @@ body {
     border-radius: 12px;
     color: var(--color-ink2);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .navlink:hover {
-    background: var(--color-surface);
-    color: var(--color-ink);
-  }
+  .navlink:hover { background: var(--color-surface); color: var(--color-ink); }
   .navlink-active {
-    background: var(--color-surface2);
+    background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface));
     color: var(--color-ink);
     box-shadow: inset 2px 0 0 var(--color-accent);
   }

@@ -7,7 +7,7 @@ const SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wo
 
 interface EspnCompetitor {
   homeAway?: string;
-  team?: { displayName?: string };
+  team?: { displayName?: string; logo?: string };
   score?: string | number;
 }
 interface EspnCompetition {
@@ -38,6 +38,8 @@ function toFixture(event: EspnEvent, poolId: string): Fixture | null {
     poolId,
     home: homeName,
     away: awayName,
+    homeLogo: home?.team?.logo ?? null,
+    awayLogo: away?.team?.logo ?? null,
     kickoff: event.date ?? "",
     status,
     homeScore: scored ? Number(home?.score ?? 0) : null,

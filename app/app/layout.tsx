@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
-import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono } from "next/font/google";
 import { getConfig } from "@/lib/wagmi";
 import { Providers } from "./providers";
 import { Sidebar } from "@/components/Sidebar";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 
 export const metadata: Metadata = {
@@ -21,7 +20,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const initialState = cookieToInitialState(getConfig(), (await headers()).get("cookie"));
 
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${manrope.variable} ${jetbrains.variable}`}>
       <body className="min-h-screen">
         <Providers initialState={initialState}>
           <div className="flex min-h-screen">
