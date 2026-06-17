@@ -16,6 +16,7 @@
     "wallet:demo": "pnpm --filter @longshot/agent wallet:demo",
     "pay:demo": "pnpm --filter @longshot/agent pay:demo",
     "broker:demo": "pnpm --filter @longshot/agent broker:demo",
+    "template:test": "pnpm --filter @longshot/agent template:test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

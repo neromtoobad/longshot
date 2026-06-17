@@ -6,6 +6,7 @@
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.0.0",
     "@longshot/shared": "workspace:*",
+    "openai": "^4.77.0",
     "viem": "^2.21.0"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
     "circle:register": "tsx --env-file=../.env scripts/register-entity-secret.ts",
     "wallet:demo": "tsx --env-file=../.env scripts/wallet-demo.ts",
     "pay:demo": "tsx --env-file=../.env scripts/pay-demo.ts",
-    "broker:demo": "tsx --env-file=../.env scripts/broker-demo.ts"
+    "broker:demo": "tsx --env-file=../.env scripts/broker-demo.ts",
+    "template:test": "tsx scripts/template-test.ts"
   }
 }
