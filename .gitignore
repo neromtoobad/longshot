@@ -13,8 +13,9 @@ coverage/
 next-env.d.ts
 .vercel/
 
-# circle wallet recovery file (Phase 3) — never commit
+# circle wallet recovery files (Phase 3) — never commit
 circle-recovery.dat
+recovery_file_*.dat
 
 # foundry
 contracts/out/
