@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Address, Bytes32, Fixture, Purchase } from "@longshot/shared";
+import type { EvidenceDecision } from "./predict.js";
 import { compileTemplate, type AgentConfig, type AgentTemplate } from "./template.js";
 
 const DATA_DIR = resolve(process.cwd(), process.env.LONGSHOT_DATA_DIR ?? ".data");
@@ -42,6 +43,7 @@ export interface StoredPrediction {
   rationale: string;
   predictionHash: Bytes32;
   spent: string; // USDC base units
+  decisions: EvidenceDecision[];
   createdAt: string;
 }
 

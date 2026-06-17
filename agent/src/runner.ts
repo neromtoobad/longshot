@@ -65,6 +65,7 @@ export async function runPool(
           rationale: res.prediction.rationale,
           predictionHash: res.predictionHash,
           spent: res.spent.toString(),
+          decisions: res.decisions,
           createdAt: new Date().toISOString(),
         });
         savePurchases(res.purchases);
