@@ -15,7 +15,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "arc:check": "tsx --env-file=../.env scripts/arc-check.ts"
+    "arc:check": "tsx --env-file=../.env scripts/arc-check.ts",
+    "score:test": "tsx scripts/scoring-test.ts"
   },
   "dependencies": {
     "viem": "^2.21.0"

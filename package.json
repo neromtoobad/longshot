@@ -21,6 +21,7 @@
     "run:pool": "pnpm --filter @longshot/agent run:pool",
     "fixtures:sync": "pnpm --filter @longshot/app fixtures:sync",
     "resolve:pool": "pnpm --filter @longshot/app resolve:pool",
+    "score:test": "pnpm --filter @longshot/shared score:test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

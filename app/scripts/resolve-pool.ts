@@ -4,6 +4,7 @@
 //
 // Run: pnpm resolve:pool <poolId> [--broadcast]   (needs $RPC; --broadcast needs DEPLOYER_PRIVATE_KEY)
 
+import { createArcPublicClient } from "@longshot/shared";
 import { allFixtures } from "../lib/fixtures-store";
 import { readResult, resolveFixtureOnChain } from "../lib/pool";
 
@@ -43,6 +44,8 @@ for (const f of finals) {
   }
   try {
     const tx = await resolveFixtureOnChain(BigInt(poolId), fixtureId, f.homeScore!, f.awayScore!);
+    // Wait for the receipt before the next tx so sequential resolves don't collide on nonce.
+    await createArcPublicClient().waitForTransactionReceipt({ hash: tx });
     resolved++;
     console.log(`  resolved ${line}  tx=${tx}`);
   } catch (e) {
