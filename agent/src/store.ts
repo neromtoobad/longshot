@@ -31,6 +31,10 @@ export interface AgentRecord {
   walletId: string;
   walletAddress: Address;
   template: AgentTemplate;
+  /** On-chain agentId from AgentRegistry, once registered. */
+  onChainAgentId?: string;
+  /** Whether the agent's Circle wallet has deposited USDC into Gateway. */
+  gatewayDeposited?: boolean;
 }
 
 export interface StoredPrediction {

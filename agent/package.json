@@ -24,6 +24,11 @@
     "template:test": "tsx scripts/template-test.ts",
     "predict:test": "tsx scripts/predict-test.ts",
     "model:ping": "tsx --env-file=../.env scripts/model-ping.ts",
-    "run:pool": "tsx --env-file=../.env scripts/run-pool.ts"
+    "run:pool": "tsx --env-file=../.env scripts/run-pool.ts",
+    "seed:wallets": "tsx --env-file=../.env scripts/seed-wallets.ts",
+    "seed:onchain": "tsx --env-file=../.env scripts/seed-onchain.ts",
+    "live:predict": "tsx --env-file=../.env scripts/live-predict.ts",
+    "dcw:buy": "tsx --env-file=../.env scripts/dcw-buy.ts",
+    "seed:finalize": "tsx --env-file=../.env scripts/seed-finalize.ts"
   }
 }

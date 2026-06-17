@@ -76,10 +76,13 @@ export async function recordPredictionOnChain(
     chain: arcTestnet,
     transport: http(rpc),
   });
-  return wallet.writeContract({
+  const tx = await wallet.writeContract({
     address: poolAddress(),
     abi: poolAbi,
     functionName: "recordPrediction",
     args: [poolId, agentId, fixtureId, hash],
   });
+  // Wait for the receipt so sequential records don't collide on nonce.
+  await createArcPublicClient().waitForTransactionReceipt({ hash: tx });
+  return tx;
 }

@@ -23,7 +23,11 @@
     "resolve:pool": "pnpm --filter @longshot/app resolve:pool",
     "score:test": "pnpm --filter @longshot/shared score:test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "seed:wallets": "pnpm --filter @longshot/agent seed:wallets",
+    "seed:onchain": "pnpm --filter @longshot/agent seed:onchain",
+    "live:predict": "pnpm --filter @longshot/agent live:predict",
+    "seed:finalize": "pnpm --filter @longshot/agent seed:finalize"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
