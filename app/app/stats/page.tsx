@@ -29,7 +29,11 @@ export default async function StatsPage() {
           value={`${(s.budgetUtilization * 100).toFixed(1)}%`}
           sub="spent / allocated"
         />
-        <Stat label="Cost per correct prediction" value={`$${usdc(s.costPerTask)}`} sub="data spent / correct" />
+        <Stat
+          label="Cost per correct prediction"
+          value={s.correctPredictions > 0 ? `$${usdc(s.costPerTask)}` : "—"}
+          sub={`data spent / ${s.correctPredictions} correct`}
+        />
       </div>
 
       {/* RFB 03 — Agent-to-Agent */}

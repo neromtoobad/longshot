@@ -2,7 +2,7 @@
 // on-chain state + scoring into the views the pages render. Read-only, server-only.
 
 import type { Fixture } from "@longshot/shared";
-import { buildLeaderboard, buildScoreRows, type ScoredEntry } from "@longshot/shared";
+import { buildLeaderboard, buildScoreRows, scorePrediction, type ScoredEntry } from "@longshot/shared";
 import { allFixtures } from "./fixtures-store";
 import { readAgents, readPredictions, readPurchases, type StoredAgent } from "./store";
 import { brokerRevenue } from "./broker";
@@ -80,6 +80,7 @@ export interface PoolStats {
   avgTxSize: string;
   budgetUtilization: number;
   costPerTask: string;
+  correctPredictions: number;
   broker: ReturnType<typeof brokerRevenue>;
 }
 
@@ -91,12 +92,14 @@ export function getStats(poolId: string): PoolStats {
   const totalSpent = purchases.reduce((s, p) => s + BigInt(p.priceUSDC), 0n);
   const allocated = agents.reduce((s, a) => s + BigInt(a.template.budget), 0n);
 
-  // Cost per task = data spent / correct predictions (scored > 0).
+  // Cost per task = data spent / correct predictions (a prediction that scored any points).
   const finals = finalFixtureMap(poolId);
   let correct = 0;
   for (const p of predictions) {
     const f = finals.get(p.fixtureId);
-    if (f && p.homeScore === f.homeScore && p.awayScore === f.awayScore) correct++;
+    if (f && scorePrediction({ homeScore: p.homeScore, awayScore: p.awayScore }, { homeScore: f.homeScore!, awayScore: f.awayScore! }) > 0) {
+      correct++;
+    }
   }
   const costPerTask = correct > 0 ? totalSpent / BigInt(correct) : 0n;
   const avgTx = purchases.length > 0 ? totalSpent / BigInt(purchases.length) : 0n;
@@ -110,6 +113,7 @@ export function getStats(poolId: string): PoolStats {
     avgTxSize: avgTx.toString(),
     budgetUtilization: allocated > 0n ? Number(totalSpent) / Number(allocated) : 0,
     costPerTask: costPerTask.toString(),
+    correctPredictions: correct,
     broker: brokerRevenue(),
   };
 }
