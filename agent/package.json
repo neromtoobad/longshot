@@ -21,6 +21,8 @@
     "wallet:demo": "tsx --env-file=../.env scripts/wallet-demo.ts",
     "pay:demo": "tsx --env-file=../.env scripts/pay-demo.ts",
     "broker:demo": "tsx --env-file=../.env scripts/broker-demo.ts",
-    "template:test": "tsx scripts/template-test.ts"
+    "template:test": "tsx scripts/template-test.ts",
+    "predict:test": "tsx scripts/predict-test.ts",
+    "model:ping": "tsx --env-file=../.env scripts/model-ping.ts"
   }
 }
