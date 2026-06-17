@@ -12,6 +12,7 @@
     "dev": "pnpm --filter @longshot/app dev",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
+    "arc:check": "pnpm --filter @longshot/shared arc:check",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
