@@ -24,6 +24,8 @@ export interface StoredAgent {
   poolId: string;
   walletId: string;
   walletAddress: string;
+  onChainAgentId?: string;
+  gatewayDeposited?: boolean;
   template: {
     name: string;
     persona: string;

@@ -42,10 +42,12 @@ export async function POST(req: NextRequest) {
   }
 
   const agent = saveAgent({
+    agentId: typeof body.onChainAgentId === "string" && body.onChainAgentId ? body.onChainAgentId : undefined,
     owner: typeof body.owner === "string" && body.owner ? body.owner : "0x0000000000000000000000000000000000000000",
     poolId: String(body.poolId ?? "1"),
-    walletId: "", // provisioned at matchday
+    walletId: "", // DCW data-wallet provisioned at matchday
     walletAddress: "",
+    onChainAgentId: typeof body.onChainAgentId === "string" ? body.onChainAgentId : undefined,
     template: {
       name: template.name,
       persona: template.persona,
