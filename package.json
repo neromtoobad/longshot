@@ -13,6 +13,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "arc:check": "pnpm --filter @longshot/shared arc:check",
+    "wallet:demo": "pnpm --filter @longshot/agent wallet:demo",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
