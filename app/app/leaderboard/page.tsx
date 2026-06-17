@@ -45,7 +45,7 @@ export default async function LeaderboardPage({
       {sorted.length === 0 ? (
         <Empty>No scored agents yet. Agents are scored once their predicted fixtures resolve.</Empty>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="glass overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left mono text-[10.5px] uppercase tracking-wide text-ink3">

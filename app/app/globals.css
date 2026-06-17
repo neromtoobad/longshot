@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
-/* LONGSHOT design tokens — dark editorial. Fraunces (display) + Inter (body) + JetBrains Mono (data). */
+/* LONGSHOT — modern crypto-dapp dark theme. Neon-lime + cyan accents, glassy panels, glow, motion. */
 @theme {
-  --color-bg: #0b0d10;
-  --color-surface: #14171c;
-  --color-surface2: #1b1f26;
-  --color-line: #262b33;
-  --color-line2: #323945;
-  --color-ink: #e9ebee;
-  --color-ink2: #9aa3b0;
-  --color-ink3: #626b78;
+  --color-bg: #07080a;
+  --color-surface: #111419;
+  --color-surface2: #171b22;
+  --color-line: #232831;
+  --color-line2: #343b47;
+  --color-ink: #f0f2f5;
+  --color-ink2: #99a2b0;
+  --color-ink3: #5e6775;
   --color-accent: #c2f23a;
-  --color-accentink: #0b0d10;
+  --color-accentink: #07080a;
+  --color-accent2: #36e0ff;
+  --color-amber: #fbbf24;
   --color-pos: #4ade80;
-  --color-neg: #f87171;
+  --color-neg: #fb6f6f;
   --color-gold: #fbbf24;
 
   --font-display: var(--font-fraunces), Georgia, serif;
@@ -26,33 +28,74 @@
 }
 
 body {
-  background: var(--color-bg);
+  background:
+    radial-gradient(900px 500px at 12% -8%, color-mix(in srgb, var(--color-accent) 9%, transparent), transparent 60%),
+    radial-gradient(800px 500px at 100% 0%, color-mix(in srgb, var(--color-accent2) 8%, transparent), transparent 55%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
 
 @layer components {
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-line);
-    border-radius: 10px;
-  }
   .mono {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+  /* Glassy panel — the default surface for the crypto-dapp look. */
+  .glass {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, transparent), color-mix(in srgb, var(--color-bg) 88%, transparent));
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    backdrop-filter: blur(8px);
+  }
+  .glass-hover {
+    transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .glass-hover:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line2));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent), 0 14px 40px -22px var(--color-accent);
+    transform: translateY(-1px);
+  }
   .pill {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     padding: 2px 9px;
     border-radius: 999px;
     font-family: var(--font-mono);
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
     border: 1px solid var(--color-line2);
     color: var(--color-ink2);
+  }
+  .glow-text {
+    text-shadow: 0 0 24px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
+}
+
+@layer utilities {
+  .fade-up {
+    animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes livepulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .live-dot {
+    animation: livepulse 1.8s ease-in-out infinite;
+  }
+  .ticker-track {
+    animation: ticker 38s linear infinite;
+  }
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
   }
 }

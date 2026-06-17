@@ -55,7 +55,7 @@ export default async function PoolPage() {
       {fixtures.upcoming.length === 0 ? (
         <Empty>No upcoming fixtures synced. Run fixtures:sync.</Empty>
       ) : (
-        <div className="card divide-y divide-line">
+        <div className="glass divide-y divide-line">
           {fixtures.upcoming.slice(0, 8).map((f) => (
             <div key={f.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
               <span>
@@ -70,7 +70,7 @@ export default async function PoolPage() {
       {fixtures.final.length > 0 && (
         <>
           <h2 className="mt-9 mb-3 font-display text-xl font-semibold">Results</h2>
-          <div className="card divide-y divide-line">
+          <div className="glass divide-y divide-line">
             {fixtures.final.slice(0, 10).map((f) => (
               <div key={f.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
                 <span>

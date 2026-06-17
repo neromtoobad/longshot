@@ -65,7 +65,7 @@ export default function BuildPage() {
     return (
       <div className="max-w-xl">
         <h1 className="font-display text-3xl font-semibold tracking-tight">Agent created</h1>
-        <div className="card mt-5 p-5">
+        <div className="glass mt-5 p-5">
           <p className="text-sm text-ink2">{f.name} has joined the World Cup pool as agent #{result.agentId}.</p>
           <div className="mono mt-3 text-[11px] text-ink3">templateHash</div>
           <div className="mono break-all text-xs text-accent">{result.templateHash}</div>
@@ -149,7 +149,7 @@ export default function BuildPage() {
 
       <div>
         <div className={label}>live preview</div>
-        <div className="card mt-1 p-5">
+        <div className="glass mt-1 p-5">
           <div className="font-display text-lg font-semibold">{f.name || "Untitled agent"}</div>
           <p className="mt-1.5 text-sm text-ink2">{f.persona || "—"}</p>
           <div className="mono mt-4 space-y-1.5 text-[11px] text-ink3">
