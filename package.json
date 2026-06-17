@@ -15,6 +15,7 @@
     "arc:check": "pnpm --filter @longshot/shared arc:check",
     "wallet:demo": "pnpm --filter @longshot/agent wallet:demo",
     "pay:demo": "pnpm --filter @longshot/agent pay:demo",
+    "broker:demo": "pnpm --filter @longshot/agent broker:demo",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

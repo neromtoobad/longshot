@@ -18,6 +18,7 @@
     "lint": "eslint src",
     "circle:register": "tsx --env-file=../.env scripts/register-entity-secret.ts",
     "wallet:demo": "tsx --env-file=../.env scripts/wallet-demo.ts",
-    "pay:demo": "tsx --env-file=../.env scripts/pay-demo.ts"
+    "pay:demo": "tsx --env-file=../.env scripts/pay-demo.ts",
+    "broker:demo": "tsx --env-file=../.env scripts/broker-demo.ts"
   }
 }

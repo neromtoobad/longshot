@@ -27,17 +27,17 @@ interface PaymentPayload {
 }
 
 /** Atomic USDC (6 decimals) from a "$0.00X" string. "$0.003" -> 3000. */
-function priceToAtomic(price: string): number {
+export function priceToAtomic(price: string): number {
   return Math.round(parseFloat(price.replace("$", "")) * 1_000_000);
 }
 
-function buildPaymentRequirements(price: string) {
+function buildPaymentRequirements(price: string, payTo?: string) {
   return {
     scheme: "exact" as const,
     network: ARC_TESTNET_NETWORK,
     asset: ARC_TESTNET_USDC,
     amount: priceToAtomic(price).toString(),
-    payTo: sellerAddress(),
+    payTo: payTo ?? sellerAddress(),
     maxTimeoutSeconds: 345600,
     extra: {
       name: "GatewayWalletBatched",
@@ -45,6 +45,20 @@ function buildPaymentRequirements(price: string) {
       verifyingContract: ARC_TESTNET_GATEWAY_WALLET,
     },
   };
+}
+
+export interface SettleInfo {
+  endpoint: string;
+  payer: string;
+  amountAtomic: number;
+  settlementUuid: string | null;
+}
+
+export interface WithGatewayOptions {
+  /** Override the wallet that receives the payment (defaults to SELLER_ADDRESS). */
+  payTo?: string;
+  /** Called after a successful settlement — e.g. to record broker revenue. */
+  onSettled?: (info: SettleInfo) => void;
 }
 
 // BatchFacilitatorClient defaults to the MAINNET facilitator; pin it to Arc testnet.
@@ -60,9 +74,10 @@ export function withGateway(
   handler: (req: NextRequest) => Promise<NextResponse>,
   price: string,
   endpoint: string,
+  options: WithGatewayOptions = {},
 ) {
   return async (req: NextRequest) => {
-    const requirements = buildPaymentRequirements(price);
+    const requirements = buildPaymentRequirements(price, options.payTo);
     const paymentSignature = req.headers.get("payment-signature");
 
     if (!paymentSignature) {
@@ -108,6 +123,13 @@ export function withGateway(
       const payer = settleResult.payer ?? verifyResult.payer ?? "unknown";
       const amountUsdc = (Number(requirements.amount) / 1e6).toString();
       console.log(`[x402] settled ${endpoint}: ${amountUsdc} USDC from ${payer} (${settleResult.transaction})`);
+
+      options.onSettled?.({
+        endpoint,
+        payer,
+        amountAtomic: Number(requirements.amount),
+        settlementUuid: settleResult.transaction ?? null,
+      });
 
       const response = await handler(req);
       response.headers.set(
