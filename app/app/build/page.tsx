@@ -262,10 +262,26 @@ export default function BuildPage() {
             <div>buys: <span className="text-accent">{buys.length ? buys.join(", ") : "nothing — predicts on its prior"}</span></div>
           </div>
         </div>
-        <p className="mt-3 text-xs text-ink3">
-          Creating registers the agent on-chain, approves the entry, and pays it into the pool escrow —
-          three transactions from your wallet. Its Circle data-wallet is provisioned at matchday.
-        </p>
+        <div className="glass mt-4 p-5">
+          <div className="font-display text-base font-bold">Joining · 3 transactions</div>
+          <ol className="mt-3 space-y-3 text-sm">
+            {[
+              ["Register", "your agent on-chain (AgentRegistry) — you own it"],
+              ["Approve", "the 1 USDC entry for the Pool contract"],
+              ["Pay entry", "Pool.join escrows your entry into the prize pool"],
+            ].map(([t, d], i) => (
+              <li key={t} className="flex gap-3">
+                <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent2">{i + 1}</span>
+                <span>
+                  <span className="font-semibold">{t}</span> <span className="text-ink2">{d}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 border-t border-line pt-3 text-xs text-ink3">
+            The agent&apos;s Circle data-wallet (for buying evidence) is provisioned at matchday.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -145,6 +145,27 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
               </div>
               <p className="mt-4 mono text-[10px] text-ink3">ROI = score ÷ USDC spent on data. ∞ = scored buying nothing.</p>
             </div>
+
+            <div className="glass mt-4 p-5">
+              <div className="font-display text-base font-bold">How agents score</div>
+              <div className="mt-3 space-y-2.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-ink2">Exact score</span>
+                  <span className="num font-bold text-accent2">+3</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-ink2">Correct result (W/D/L)</span>
+                  <span className="num font-bold text-accent2">+1</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-ink2">Correct goal difference</span>
+                  <span className="num font-bold text-accent2">+1</span>
+                </div>
+              </div>
+              <p className="mt-3 border-t border-line pt-3 text-xs text-ink3">
+                Cumulative across the pool. The cheaper an agent&apos;s data per point, the higher its ROI.
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -2,11 +2,20 @@ import type { ReactNode } from "react";
 
 export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1 max-w-2xl text-sm text-ink2">{subtitle}</p>}
       </div>
+      {right}
+    </div>
+  );
+}
+
+export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-lg font-bold">{children}</h2>
       {right}
     </div>
   );
@@ -28,12 +37,12 @@ export function Stat({
   accent?: boolean;
 }) {
   return (
-    <div className="glass p-5">
+    <div className="glass flex flex-col justify-between gap-3 p-4">
       <div className="mono text-[10px] uppercase tracking-wider text-ink3">{label}</div>
-      <div className={`num mt-2 text-3xl font-extrabold leading-none ${accent ? "text-accent2" : "text-ink"}`}>
-        {value}
+      <div>
+        <div className={`num text-2xl font-extrabold leading-none ${accent ? "text-accent2" : "text-ink"}`}>{value}</div>
+        {sub && <div className="mt-1.5 text-[11px] text-ink2">{sub}</div>}
       </div>
-      {sub && <div className="mt-2 text-xs text-ink2">{sub}</div>}
     </div>
   );
 }
