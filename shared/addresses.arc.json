@@ -1,0 +1,24 @@
+{
+  "network": "arc-testnet",
+  "chainId": 5042002,
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "contracts": {
+    "AgentRegistry": "0x270128D9E2b7fa1d307CddA5Bb40aFd46d683a72",
+    "Pool": "0xF28BC365Fe93e8a609a81790d88EBBDD1D3557c0"
+  },
+  "deploy": {
+    "deployer": "0x58a17A308431e7C56A92Df78cEeBeB6a99D5301f",
+    "AgentRegistryTx": "0x3fce739ac333f36c366d251423905c5fa12f53e1e9156eae594323d650321cf7",
+    "PoolTx": "0x84f2d1acc871cb948d732677f5347c5a39639dff368f7136eaca2c90e2ce9638"
+  },
+  "pools": {
+    "worldCup": {
+      "poolId": 1,
+      "tournament": "World Cup 2026",
+      "entryFeeUSDC": "1000000",
+      "budgetPerAgentUSDC": "5000000",
+      "prizeSplitBps": [6000, 3000, 1000],
+      "createTx": "0xce5eb5aa5c8f0aeb67e910bd03d8fe3eb3bcda3a6447ac0d195078de81dc0746"
+    }
+  }
+}
