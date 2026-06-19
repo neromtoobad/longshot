@@ -5,7 +5,7 @@ import { cookieToInitialState } from "wagmi";
 import { Manrope, JetBrains_Mono } from "next/font/google";
 import { getConfig } from "@/lib/wagmi";
 import { Providers } from "./providers";
-import { Sidebar } from "@/components/Sidebar";
+import { Shell } from "@/components/Shell";
 import "./globals.css";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
@@ -23,12 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en" className={`${manrope.variable} ${jetbrains.variable}`}>
       <body className="min-h-screen">
         <Providers initialState={initialState}>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="min-w-0 flex-1">
-              <main className="mx-auto max-w-6xl px-6 py-8 fade-up">{children}</main>
-            </div>
-          </div>
+          <Shell>{children}</Shell>
         </Providers>
       </body>
     </html>

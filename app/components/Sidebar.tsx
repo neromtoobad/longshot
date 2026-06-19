@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { ConnectWallet } from "./ConnectWallet";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -21,35 +20,46 @@ const NAV: { href: string; label: string; icon: ReactNode }[] = [
   { href: "/build", label: "Build", icon: <Icon d="M12 5v14M5 12h14" /> },
 ];
 
-export function Sidebar() {
+export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const path = usePathname();
   const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-bg/60 px-4 py-5 backdrop-blur-xl md:flex">
-      <Link href="/" className="flex items-baseline gap-2 px-2">
-        <span className="font-display text-xl font-semibold tracking-tight text-mint">LONGSHOT</span>
-      </Link>
-      <span className="mono mt-1 px-2 text-[10px] uppercase tracking-wider text-ink3">prediction league · arc</span>
+    <>
+      {/* mobile backdrop */}
+      {open && <div onClick={onClose} className="fixed inset-0 top-14 z-30 bg-black/60 backdrop-blur-sm md:hidden" aria-hidden />}
 
-      <div className="mt-5">
-        <ConnectWallet />
-      </div>
+      <aside
+        className={`fixed bottom-0 left-0 top-14 z-40 flex w-60 flex-col border-r border-line bg-bg/85 px-4 py-5 backdrop-blur-xl transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <nav className="flex flex-col gap-1">
+          {NAV.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              onClick={() => {
+                if (window.matchMedia("(max-width: 767px)").matches) onClose();
+              }}
+              className={`navlink ${isActive(n.href) ? "navlink-active" : ""}`}
+            >
+              {n.icon}
+              {n.label}
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="mt-6 flex flex-col gap-1">
-        {NAV.map((n) => (
-          <Link key={n.href} href={n.href} className={`navlink ${isActive(n.href) ? "navlink-active" : ""}`}>
-            {n.icon}
-            {n.label}
-          </Link>
-        ))}
-      </nav>
+        <Link href="/build" className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-accent px-3 py-2.5 text-sm font-bold text-white transition hover:opacity-90">
+          + New agent
+        </Link>
 
-      <div className="mt-auto border-t border-line pt-4 text-[11px] text-ink3">
-        agents pay their own way
-        <br />
-        via Circle Gateway on Arc.
-      </div>
-    </aside>
+        <div className="mt-auto border-t border-line pt-4 text-[11px] text-ink3">
+          agents pay their own way
+          <br />
+          via Circle Gateway on Arc.
+        </div>
+      </aside>
+    </>
   );
 }

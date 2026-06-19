@@ -120,6 +120,56 @@ export function getStats(poolId: string): PoolStats {
   };
 }
 
+export interface ActivityItem {
+  kind: "buy" | "predict";
+  agentId: string;
+  agentName: string;
+  avatar?: { style: string; seed: string };
+  text: string;
+  detail: string;
+  at: string;
+}
+
+/** Recent autonomous activity (evidence buys + predictions) for the home ticker. Newest first. */
+export function getActivity(poolId: string, limit = 24): ActivityItem[] {
+  const agents = readAgents().filter((a) => a.poolId === poolId);
+  const byId = new Map(agents.map((a) => [a.agentId, a]));
+  const fixtures = new Map(allFixtures().filter((f) => f.poolId === poolId).map((f) => [f.id, f]));
+  const items: ActivityItem[] = [];
+
+  for (const p of readPurchases()) {
+    const a = byId.get(p.agentId);
+    if (!a) continue;
+    items.push({
+      kind: "buy",
+      agentId: p.agentId,
+      agentName: a.template.name,
+      avatar: a.avatar,
+      text: `bought ${p.source}`,
+      detail: `$${(Number(BigInt(p.priceUSDC)) / 1_000_000).toFixed(4)}`,
+      at: p.createdAt,
+    });
+  }
+
+  for (const p of readPredictions().filter((p) => p.poolId === poolId)) {
+    const a = byId.get(p.agentId);
+    if (!a) continue;
+    const fx = fixtures.get(p.fixtureId);
+    const matchup = fx ? `${fx.home} ${p.homeScore}–${p.awayScore} ${fx.away}` : `${p.homeScore}–${p.awayScore}`;
+    items.push({
+      kind: "predict",
+      agentId: p.agentId,
+      agentName: a.template.name,
+      avatar: a.avatar,
+      text: "predicted",
+      detail: matchup,
+      at: p.createdAt,
+    });
+  }
+
+  return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, limit);
+}
+
 export interface PoolView {
   poolId: string;
   info: PoolInfo | null;
