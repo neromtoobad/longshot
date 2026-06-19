@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { decodeEventLog } from "viem";
+import { decodeEventLog, type Hex } from "viem";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { hashTemplate, type AgentTemplate } from "@longshot/shared";
+import { encodeCall, useWallet } from "@/lib/wallet-context";
 import { Avatar } from "@/components/Avatar";
 import { AVATAR_STYLES, avatarUrl, randomSeed, SEED_POOL } from "@/lib/avatar";
 import { arcChain } from "@/lib/wagmi";
@@ -244,11 +245,14 @@ export default function BuildPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ agentId: string; joinTx: string } | null>(null);
 
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, walletType, bundlerClient } = useWallet();
+  const { chainId } = useAccount();
   const { switchChain } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
-  const onArc = chainId === arcChain.id;
+  // Circle smart accounts are always on Arc; MetaMask must be switched to it.
+  const onArc = walletType === "circle" || chainId === arcChain.id;
+  const gasless = walletType === "circle";
 
   const set = (patch: Partial<Form>) => setF((prev) => ({ ...prev, ...patch }));
   const setSource = (s: Source, patch: Partial<SourceState>) =>
@@ -288,9 +292,20 @@ export default function BuildPage() {
       const template = buildTemplate();
       const templateHash = hashTemplate(template);
 
+      // 1) Register the agent on-chain. With the Circle smart wallet this is a gasless userOp;
+      //    with MetaMask it's a normal tx. Either way we read the receipt to recover the agentId.
       setStep("register");
-      const regTx = await writeContractAsync({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "registerAgent", args: [template.name, templateHash, address] });
-      const regRcpt = await publicClient.waitForTransactionReceipt({ hash: regTx });
+      let regTxHash: Hex;
+      if (gasless && bundlerClient) {
+        const op = await bundlerClient.sendUserOperation({
+          calls: [encodeCall({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "registerAgent", args: [template.name, templateHash, address] })],
+          paymaster: true,
+        });
+        regTxHash = (await bundlerClient.waitForUserOperationReceipt({ hash: op })).receipt.transactionHash;
+      } else {
+        regTxHash = await writeContractAsync({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "registerAgent", args: [template.name, templateHash, address] });
+      }
+      const regRcpt = await publicClient.waitForTransactionReceipt({ hash: regTxHash });
       let agentId: bigint | undefined;
       for (const log of regRcpt.logs) {
         try {
@@ -305,13 +320,28 @@ export default function BuildPage() {
       }
       if (agentId === undefined) throw new Error("could not read agentId from registration");
 
-      setStep("approve");
-      const apprTx = await writeContractAsync({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "approve", args: [POOL_ADDRESS, ENTRY_FEE] });
-      await publicClient.waitForTransactionReceipt({ hash: apprTx });
+      // 2) Pay the entry: approve + join. The smart wallet batches both into one gasless userOp;
+      //    MetaMask sends them as two txs.
+      let joinTx: Hex;
+      if (gasless && bundlerClient) {
+        setStep("join");
+        const op = await bundlerClient.sendUserOperation({
+          calls: [
+            encodeCall({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "approve", args: [POOL_ADDRESS, ENTRY_FEE] }),
+            encodeCall({ address: POOL_ADDRESS, abi: poolAbi, functionName: "join", args: [WORLD_CUP_POOL_ID, agentId] }),
+          ],
+          paymaster: true,
+        });
+        joinTx = (await bundlerClient.waitForUserOperationReceipt({ hash: op })).receipt.transactionHash;
+      } else {
+        setStep("approve");
+        const apprTx = await writeContractAsync({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "approve", args: [POOL_ADDRESS, ENTRY_FEE] });
+        await publicClient.waitForTransactionReceipt({ hash: apprTx });
 
-      setStep("join");
-      const joinTx = await writeContractAsync({ address: POOL_ADDRESS, abi: poolAbi, functionName: "join", args: [WORLD_CUP_POOL_ID, agentId] });
-      await publicClient.waitForTransactionReceipt({ hash: joinTx });
+        setStep("join");
+        joinTx = await writeContractAsync({ address: POOL_ADDRESS, abi: poolAbi, functionName: "join", args: [WORLD_CUP_POOL_ID, agentId] });
+        await publicClient.waitForTransactionReceipt({ hash: joinTx });
+      }
 
       setStep("save");
       await fetch("/api/agents", {
@@ -363,10 +393,10 @@ export default function BuildPage() {
 
   const busy = step !== "idle";
   const stepLabel: Record<Step, string> = {
-    idle: "Mint + drop in pool · 1 USDC entry",
-    register: "1/3 · registering agent…",
-    approve: "2/3 · approve USDC…",
-    join: "3/3 · paying entry…",
+    idle: gasless ? "Mint + drop in pool · gasless ⚡" : "Mint + drop in pool · 1 USDC entry",
+    register: "registering agent…",
+    approve: "approving USDC…",
+    join: "paying entry…",
     save: "finishing…",
     done: "done",
   };
@@ -543,7 +573,7 @@ export default function BuildPage() {
 
           {error && <p className="text-sm text-neg">{error}</p>}
           {!isConnected ? (
-            <p className="text-sm text-ink2">Connect your wallet (sidebar) to mint + drop your agent.</p>
+            <p className="text-sm text-ink2">Connect a wallet (top right) to mint + drop your agent — a Circle smart wallet (passkey, gasless) or MetaMask.</p>
           ) : !onArc ? (
             <button type="button" onClick={() => switchChain({ chainId: arcChain.id })} className="rounded-xl border border-gold/50 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold">
               Switch to Arc to continue
@@ -572,7 +602,10 @@ export default function BuildPage() {
           </div>
 
           <div className="glass p-5">
-            <div className="font-bold">Minting · 3 transactions on Arc</div>
+            <div className="flex items-center justify-between">
+              <div className="font-bold">Minting on Arc</div>
+              {gasless && <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent2">⚡ gasless</span>}
+            </div>
             <ol className="mt-3 space-y-2.5 text-sm">
               {[
                 ["Register", "your agent on-chain — you own it"],
@@ -585,6 +618,9 @@ export default function BuildPage() {
                 </li>
               ))}
             </ol>
+            <p className="mt-3 border-t border-line pt-3 text-[11px] text-ink3">
+              {gasless ? "Signed with your passkey. Approve + pay are batched into one sponsored user-op — no gas, no seed phrase." : "Signed in your wallet. You pay network gas in USDC."}
+            </p>
           </div>
         </div>
       </div>
