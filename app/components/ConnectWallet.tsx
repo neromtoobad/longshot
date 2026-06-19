@@ -48,7 +48,7 @@ export function ConnectWallet() {
           <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-line bg-surface p-3 shadow-xl">
             <div className="mono text-[10px] uppercase tracking-wider text-ink3">{walletType === "circle" ? "circle smart wallet" : "metamask"}</div>
             <div className="mono mt-1 break-all text-[11px] text-ink2">{address}</div>
-            {walletType === "circle" && <div className="mt-2 rounded-lg bg-accent/10 px-2 py-1 text-[11px] text-accent2">passkey · gasless on Arc</div>}
+            {walletType === "circle" && <div className="mt-2 rounded-lg bg-accent/10 px-2 py-1 text-[11px] text-accent2">PIN · Circle smart wallet on Arc</div>}
             <button onClick={() => { disconnect(); setOpen(false); }} className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm text-ink2 transition hover:bg-surface2 hover:text-neg">
               Disconnect
             </button>
@@ -72,7 +72,7 @@ export function ConnectWallet() {
             <span className="text-lg">⚡</span>
             <span>
               <span className="block text-sm font-semibold">Smart Wallet</span>
-              <span className="block text-[11px] text-ink2">{circleAvailable ? "passkey · gasless · Circle on Arc" : "Circle — needs setup (.env.local)"}</span>
+              <span className="block text-[11px] text-ink2">{circleAvailable ? "PIN · Circle smart wallet on Arc" : "Circle — needs setup (App ID)"}</span>
             </span>
           </button>
           <button

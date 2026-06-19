@@ -30,6 +30,13 @@ export const registryAbi = [
       { name: "name", type: "string", indexed: false },
     ],
   },
+  {
+    type: "function",
+    name: "agentsByOwner",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ type: "uint256[]" }],
+  },
 ] as const;
 
 export const usdcAbi = [
@@ -72,5 +79,15 @@ export const poolAbi = [
       { name: "agentId", type: "uint256" },
     ],
     outputs: [],
+  },
+  {
+    type: "function",
+    name: "joined",
+    stateMutability: "view",
+    inputs: [
+      { name: "poolId", type: "uint256" },
+      { name: "agentId", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
   },
 ] as const;

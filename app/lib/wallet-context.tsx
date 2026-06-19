@@ -1,41 +1,46 @@
 "use client";
 
-// Unified wallet layer: a Circle Modular smart account (passkey, gasless) OR a wagmi/MetaMask EOA.
-// One useWallet() hook drives the topbar connect and the build flow. Adapted from the
-// circlefin/arc-prediction-markets reference (Apache-2.0), wired to this app's wagmi config.
+// Unified wallet layer: a Circle User-Controlled Wallet (PIN-authenticated MPC smart account on
+// Arc) OR a wagmi/MetaMask EOA. One useWallet() hook drives the topbar connect and the build flow.
+//
+// Circle flow (per @circle-fin/user-controlled-wallets v10.6 + w3s-pw-web-sdk):
+//   session (createUser + createUserToken) -> W3SSdk getDeviceId + setAuthentication
+//   -> list/create PIN wallet -> execute contract challenges, each approved by the user's PIN
+//   in Circle's hosted UI. On-chain effects are confirmed by reading Arc directly.
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { encodeFunctionData, type Abi, type Address, type Hex } from "viem";
-import { toWebAuthnAccount, createBundlerClient } from "viem/account-abstraction";
+import type { Address } from "viem";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { toWebAuthnCredential, toCircleSmartAccount, WebAuthnMode } from "@circle-fin/modular-wallets-core";
-import {
-  estimateUserOpFees,
-  getCirclePublicClient,
-  getModularTransport,
-  getPasskeyTransport,
-  isCircleConfigured,
-} from "./circle";
-import { arcChain } from "./wagmi";
 
-const STORAGE_KEY = "longshot-circle-credential";
+const USERID_KEY = "longshot-circle-userid";
+const APP_ID = process.env.NEXT_PUBLIC_CIRCLE_APP_ID ?? "";
+const APP_ID_OK = Boolean(APP_ID) && APP_ID !== "your_circle_app_id_here";
 
 export type WalletType = "metamask" | "circle" | null;
 
-interface BundlerClient {
-  sendUserOperation: (args: { calls: { to: Hex; data: Hex; value?: bigint }[]; paymaster: true }) => Promise<Hex>;
-  waitForUserOperationReceipt: (args: { hash: Hex }) => Promise<{ receipt: { transactionHash: Hex } }>;
+export interface CircleCall {
+  contractAddress: string;
+  abiFunctionSignature: string;
+  abiParameters: (string | number)[];
+}
+
+// Minimal shape of the W3S web SDK we use (avoids a hard type dep at module scope).
+interface W3SSdkLike {
+  getDeviceId: () => Promise<string>;
+  setAuthentication: (a: { userToken: string; encryptionKey: string }) => void;
+  execute: (challengeId: string, cb: (error?: { message?: string } | null, result?: unknown) => void) => void;
 }
 
 interface WalletContextValue {
   address: Address | undefined;
   isConnected: boolean;
   walletType: WalletType;
-  bundlerClient: BundlerClient | null;
   circleAvailable: boolean;
   connectMetaMask: () => void;
   connectCircle: () => Promise<void>;
   disconnect: () => void;
+  /** Run a contract call from the Circle wallet (PIN-approved). Resolves when the challenge is approved. */
+  executeCircleCall: (call: CircleCall) => Promise<void>;
   isConnecting: boolean;
   circleError: string | null;
 }
@@ -48,15 +53,20 @@ export function useWallet() {
   return ctx;
 }
 
-/** Encode a contract call into a UserOperation/transaction call object. */
-export function encodeCall(params: { address: Address; abi: Abi; functionName: string; args?: readonly unknown[] }): {
-  to: Hex;
-  data: Hex;
-} {
-  return {
-    to: params.address as Hex,
-    data: encodeFunctionData({ abi: params.abi, functionName: params.functionName, args: params.args as unknown[] }),
-  };
+function executeChallenge(sdk: W3SSdkLike, challengeId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    sdk.execute(challengeId, (error) => {
+      if (error) reject(new Error(error.message || "challenge rejected"));
+      else resolve();
+    });
+  });
+}
+
+async function api<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const json = (await res.json()) as T & { error?: string };
+  if (!res.ok || json.error) throw new Error(json.error || `request failed (${res.status})`);
+  return json;
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -65,62 +75,88 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const { disconnect: wagmiDisconnect } = useDisconnect();
 
   const [circleAddress, setCircleAddress] = useState<Address | undefined>();
-  const [bundlerClient, setBundlerClient] = useState<BundlerClient | null>(null);
   const [circleConnecting, setCircleConnecting] = useState(false);
   const [circleError, setCircleError] = useState<string | null>(null);
-  const restoringRef = useRef(false);
+  const sdkRef = useRef<W3SSdkLike | null>(null);
+  const tokenRef = useRef<{ userToken: string; encryptionKey: string } | null>(null);
+  const walletIdRef = useRef<string | null>(null);
 
   const walletType: WalletType = wagmiConnected ? "metamask" : circleAddress ? "circle" : null;
   const address = walletType === "metamask" ? wagmiAddress : circleAddress;
   const isConnected = walletType !== null;
 
-  const initCircleAccount = useCallback(async (credential: Awaited<ReturnType<typeof toWebAuthnCredential>>) => {
-    const owner = toWebAuthnAccount({ credential });
-    const smartAccount = await toCircleSmartAccount({ client: getCirclePublicClient(), owner });
-    const client = createBundlerClient({
-      account: smartAccount,
-      chain: arcChain,
-      transport: getModularTransport(),
-      paymaster: true,
-      userOperation: { estimateFeesPerGas: estimateUserOpFees },
-    });
-    setCircleAddress(smartAccount.address);
-    setBundlerClient(client as unknown as BundlerClient);
+  const initSdk = useCallback(async (userToken: string, encryptionKey: string) => {
+    const mod = await import("@circle-fin/w3s-pw-web-sdk");
+    const sdk = new mod.W3SSdk({ appSettings: { appId: APP_ID } }) as unknown as W3SSdkLike;
+    await sdk.getDeviceId(); // establishes the iframe session — required before execute()
+    sdk.setAuthentication({ userToken, encryptionKey });
+    sdkRef.current = sdk;
+    tokenRef.current = { userToken, encryptionKey };
+    return sdk;
   }, []);
 
   const connectCircle = useCallback(async () => {
     setCircleConnecting(true);
     setCircleError(null);
     try {
-      if (!isCircleConfigured()) {
-        throw new Error("Circle smart wallet needs setup — add NEXT_PUBLIC_CIRCLE_CLIENT_KEY and NEXT_PUBLIC_CIRCLE_CLIENT_URL to app/.env.local.");
-      }
+      if (!APP_ID_OK) throw new Error("Smart wallet needs setup — add NEXT_PUBLIC_CIRCLE_APP_ID to app/.env.local.");
       if (wagmiConnected) wagmiDisconnect();
 
-      let credential: Awaited<ReturnType<typeof toWebAuthnCredential>>;
-      // Try logging into an existing passkey; otherwise register a new one.
-      try {
-        credential = await toWebAuthnCredential({ transport: getPasskeyTransport(), mode: WebAuthnMode.Login });
-      } catch {
-        const username = `longshot_${crypto.randomUUID().slice(0, 8)}`;
-        credential = await toWebAuthnCredential({ transport: getPasskeyTransport(), mode: WebAuthnMode.Register, username });
+      let userId = localStorage.getItem(USERID_KEY);
+      if (!userId) {
+        userId = `ls_${crypto.randomUUID()}`;
+        localStorage.setItem(USERID_KEY, userId);
       }
 
-      await initCircleAccount(credential);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ credentialId: credential.id }));
+      const session = await api<{ userToken: string; encryptionKey: string }>("/api/circle/session", { userId });
+      const sdk = await initSdk(session.userToken, session.encryptionKey);
+
+      type W = { id: string; address: string };
+      let { wallets } = await api<{ wallets: W[] }>("/api/circle/wallet", { action: "list", userToken: session.userToken });
+
+      if (wallets.length === 0) {
+        const { challengeId } = await api<{ challengeId: string }>("/api/circle/wallet", { action: "create", userToken: session.userToken });
+        await executeChallenge(sdk, challengeId); // hosted UI: user sets a PIN + security questions; wallet is created
+        // poll until the new wallet is queryable
+        for (let i = 0; i < 20 && wallets.length === 0; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
+          ({ wallets } = await api<{ wallets: W[] }>("/api/circle/wallet", { action: "list", userToken: session.userToken }));
+        }
+      }
+      if (wallets.length === 0) throw new Error("wallet not ready yet — try connecting again in a moment");
+
+      walletIdRef.current = wallets[0].id;
+      setCircleAddress(wallets[0].address as Address);
     } catch (err) {
       console.error("Circle wallet connection failed:", err);
-      setCircleError(err instanceof Error ? err.message : "Failed to connect passkey wallet");
+      setCircleError(err instanceof Error ? err.message : "Failed to connect smart wallet");
     } finally {
       setCircleConnecting(false);
     }
-  }, [wagmiConnected, wagmiDisconnect, initCircleAccount]);
+  }, [wagmiConnected, wagmiDisconnect, initSdk]);
+
+  const executeCircleCall = useCallback(async (call: CircleCall) => {
+    const sdk = sdkRef.current;
+    const token = tokenRef.current;
+    const walletId = walletIdRef.current;
+    if (!sdk || !token || !walletId) throw new Error("smart wallet not ready");
+    const { challengeId } = await api<{ challengeId: string }>("/api/circle/execute", {
+      userToken: token.userToken,
+      walletId,
+      contractAddress: call.contractAddress,
+      abiFunctionSignature: call.abiFunctionSignature,
+      abiParameters: call.abiParameters,
+    });
+    if (!challengeId) throw new Error("no challenge returned");
+    await executeChallenge(sdk, challengeId);
+  }, []);
 
   const connectMetaMask = useCallback(() => {
     if (circleAddress) {
       setCircleAddress(undefined);
-      setBundlerClient(null);
-      localStorage.removeItem(STORAGE_KEY);
+      sdkRef.current = null;
+      tokenRef.current = null;
+      walletIdRef.current = null;
     }
     const connector = connectors[0];
     if (connector) connect({ connector });
@@ -129,35 +165,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(() => {
     if (walletType === "metamask") {
       wagmiDisconnect();
-    } else if (walletType === "circle") {
+    } else {
       setCircleAddress(undefined);
-      setBundlerClient(null);
-      localStorage.removeItem(STORAGE_KEY);
+      sdkRef.current = null;
+      tokenRef.current = null;
+      walletIdRef.current = null;
     }
   }, [walletType, wagmiDisconnect]);
 
-  // Restore a Circle passkey session on mount.
+  // Restore a Circle session on reload (mint a fresh token, re-read the wallet) if a userId exists.
   useEffect(() => {
-    if (restoringRef.current || !isCircleConfigured()) return;
-    const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-    if (!raw || wagmiConnected) return;
-
-    restoringRef.current = true;
-    const { credentialId } = JSON.parse(raw) as { credentialId: string };
+    if (!APP_ID_OK || wagmiConnected || circleAddress || sdkRef.current) return;
+    const userId = typeof window !== "undefined" ? localStorage.getItem(USERID_KEY) : null;
+    if (!userId) return;
+    let cancelled = false;
     (async () => {
       try {
-        setCircleConnecting(true);
-        const credential = await toWebAuthnCredential({ transport: getPasskeyTransport(), mode: WebAuthnMode.Login, credentialId });
-        await initCircleAccount(credential);
-      } catch (err) {
-        console.error("Failed to restore Circle session:", err);
-        localStorage.removeItem(STORAGE_KEY);
-      } finally {
-        setCircleConnecting(false);
-        restoringRef.current = false;
+        const session = await api<{ userToken: string; encryptionKey: string }>("/api/circle/session", { userId });
+        if (cancelled) return;
+        await initSdk(session.userToken, session.encryptionKey);
+        type W = { id: string; address: string };
+        const { wallets } = await api<{ wallets: W[] }>("/api/circle/wallet", { action: "list", userToken: session.userToken });
+        if (cancelled || wallets.length === 0) return;
+        walletIdRef.current = wallets[0].id;
+        setCircleAddress(wallets[0].address as Address);
+      } catch {
+        /* stay disconnected; user can reconnect */
       }
     })();
-  }, [wagmiConnected, initCircleAccount]);
+    return () => {
+      cancelled = true;
+    };
+  }, [wagmiConnected, circleAddress, initSdk]);
 
   return (
     <WalletContext.Provider
@@ -165,11 +204,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         address,
         isConnected,
         walletType,
-        bundlerClient,
-        circleAvailable: isCircleConfigured(),
+        circleAvailable: APP_ID_OK,
         connectMetaMask,
         connectCircle,
         disconnect,
+        executeCircleCall,
         isConnecting: wagmiPending || circleConnecting,
         circleError,
       }}
