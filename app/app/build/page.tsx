@@ -6,6 +6,7 @@ import { decodeEventLog } from "viem";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { hashTemplate, type AgentTemplate } from "@longshot/shared";
 import { Avatar } from "@/components/Avatar";
+import { AVATAR_STYLES, avatarUrl, randomSeed, SEED_POOL } from "@/lib/avatar";
 import { arcChain } from "@/lib/wagmi";
 import {
   ENTRY_FEE,
@@ -29,6 +30,8 @@ type Form = {
   risk: Risk;
   budget: string;
   broker: boolean;
+  avatarStyle: string;
+  avatarSeed: string;
   sources: Record<Source, SourceState>;
 };
 
@@ -38,12 +41,10 @@ const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = 
     emoji: "🎲",
     blurb: "backs underdogs on cheap signals",
     form: {
-      name: "Cheap Contrarian",
+      name: "Cheap Contrarian", avatarStyle: "bottts", avatarSeed: "saber",
       persona: "A frugal contrarian who backs underdogs when cheap signals disagree with the favorite.",
       prompt: "Predict the exact score. Favor upsets when the evidence you bought contradicts the market.",
-      risk: "high",
-      budget: "0.03",
-      broker: false,
+      risk: "high", budget: "0.03", broker: false,
       sources: { form: { on: true, wtp: "0.004" }, odds: { on: false, wtp: "0" }, injuries: { on: false, wtp: "0" }, h2h: { on: true, wtp: "0.004" } },
     },
   },
@@ -52,12 +53,10 @@ const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = 
     emoji: "📈",
     blurb: "trusts the market odds",
     form: {
-      name: "Favorite Backer",
+      name: "Favorite Backer", avatarStyle: "bottts-neutral", avatarSeed: "halo",
       persona: "A disciplined favorite-backer who trusts the bookmakers above all.",
       prompt: "Predict the exact score. Weight the market odds heavily; favor the favorite unless the data screams otherwise.",
-      risk: "low",
-      budget: "0.04",
-      broker: true,
+      risk: "low", budget: "0.04", broker: true,
       sources: { form: { on: false, wtp: "0" }, odds: { on: true, wtp: "0.008" }, injuries: { on: true, wtp: "0.004" }, h2h: { on: false, wtp: "0" } },
     },
   },
@@ -66,12 +65,10 @@ const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = 
     emoji: "🩹",
     blurb: "weights availability + form",
     form: {
-      name: "Injury Hunter",
+      name: "Injury Hunter", avatarStyle: "bottts", avatarSeed: "krait",
       persona: "An injury-news specialist who values team availability and recent form over market odds.",
       prompt: "Predict the exact score. Heavily weight injuries/availability and recent form.",
-      risk: "medium",
-      budget: "0.03",
-      broker: false,
+      risk: "medium", budget: "0.03", broker: false,
       sources: { form: { on: true, wtp: "0.005" }, odds: { on: false, wtp: "0" }, injuries: { on: true, wtp: "0.005" }, h2h: { on: true, wtp: "0.003" } },
     },
   },
@@ -80,34 +77,84 @@ const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = 
     emoji: "🧠",
     blurb: "buys everything, every match",
     form: {
-      name: "Data Maximalist",
+      name: "Data Maximalist", avatarStyle: "bottts-neutral", avatarSeed: "pulse",
       persona: "A data maximalist who buys every available signal and synthesizes them all.",
       prompt: "Predict the exact score using every piece of evidence you bought. Be decisive.",
-      risk: "high",
-      budget: "0.1",
-      broker: true,
+      risk: "high", budget: "0.1", broker: true,
       sources: { form: { on: true, wtp: "0.006" }, odds: { on: true, wtp: "0.008" }, injuries: { on: true, wtp: "0.006" }, h2h: { on: true, wtp: "0.006" } },
     },
   },
+  {
+    key: "Form Sniper",
+    emoji: "🎯",
+    blurb: "one signal, dead cheap",
+    form: {
+      name: "Form Sniper", avatarStyle: "pixel-art", avatarSeed: "ion",
+      persona: "A specialist sniper who reads recent form only and refuses to overpay for noise.",
+      prompt: "Predict the exact score from recent form alone. Be precise, ignore the market.",
+      risk: "medium", budget: "0.02", broker: false,
+      sources: { form: { on: true, wtp: "0.005" }, odds: { on: false, wtp: "0" }, injuries: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
+    },
+  },
+  {
+    key: "Coinflip Kid",
+    emoji: "🪙",
+    blurb: "buys nothing, rides on gut",
+    form: {
+      name: "Coinflip Kid", avatarStyle: "fun-emoji", avatarSeed: "nova",
+      persona: "A reckless gambler who buys no data and predicts on pure instinct, chasing infinite ROI.",
+      prompt: "Predict the exact score from your prior alone. Be bold and back the upset.",
+      risk: "high", budget: "0.01", broker: false,
+      sources: { form: { on: false, wtp: "0" }, odds: { on: false, wtp: "0" }, injuries: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
+    },
+  },
 ];
+
+const ADJ = ["Neon", "Quantum", "Rogue", "Velvet", "Iron", "Solar", "Phantom", "Turbo", "Cosmic", "Feral", "Gilded", "Hyper", "Atomic", "Lunar", "Crimson", "Static"];
+const NOUN = ["Jackal", "Magpie", "Oracle", "Comet", "Bandit", "Sphinx", "Falcon", "Cobra", "Maverick", "Nomad", "Specter", "Vulcan", "Reaper", "Drake", "Hydra", "Vandal"];
 
 function toBaseUnits(v: string): string {
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return "0";
   return String(Math.round(n * 1_000_000));
 }
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+// ── gamified card maths: turn a strategy into FIFA-style stats + an overall rating + a rarity ──
+type Rarity = "bronze" | "silver" | "gold" | "icon";
+function computeCard(f: Form) {
+  const on = SOURCES.filter((s) => f.sources[s].on && parseFloat(f.sources[s].wtp || "0") > 0);
+  const AGG = f.risk === "high" ? 94 : f.risk === "medium" ? 73 : 52; // aggression
+  const INT = on.length === 0 ? 24 : clamp(Math.round((on.length / SOURCES.length) * 99), 45, 99); // intel / coverage
+  const budgetNum = parseFloat(f.budget) || 0;
+  const PWR = clamp(Math.round((budgetNum / 0.2) * 99), 12, 99); // firepower / budget
+  const avgWtp = on.length ? on.reduce((s, x) => s + (parseFloat(f.sources[x].wtp) || 0), 0) / on.length : 0;
+  const VAL = avgWtp > 0 ? clamp(Math.round(100 - (avgWtp / 0.008) * 78), 22, 99) : 88; // value / thrift (cheaper = higher; buys nothing = thrifty)
+  const NET = f.broker ? 90 : 64; // network (broker depth)
+  const IQ = clamp(Math.round(INT * 0.5 + PWR * 0.5), 20, 99); // synthesis
+  const ovr = clamp(Math.round(AGG * 0.16 + INT * 0.2 + PWR * 0.16 + VAL * 0.22 + NET * 0.12 + IQ * 0.14), 41, 99);
+  const stats = [
+    { k: "AGG", v: AGG }, { k: "VAL", v: VAL },
+    { k: "INT", v: INT }, { k: "NET", v: NET },
+    { k: "PWR", v: PWR }, { k: "IQ", v: IQ },
+  ];
+  const role = f.risk === "high" ? "ST" : f.risk === "low" ? "CB" : "CM";
+  const rarity: Rarity = ovr >= 92 ? "icon" : ovr >= 85 ? "gold" : ovr >= 70 ? "silver" : "bronze";
+  return { ovr, stats, role, rarity, buys: on };
+}
+
+const RARITY: Record<Rarity, { label: string; bg: string; ring: string; ink: string; chip: string }> = {
+  icon: { label: "ICON", bg: "linear-gradient(155deg,#1f4694 0%,#0a1530 90%)", ring: "#4d7ef5", ink: "#dbe6ff", chip: "rgba(77,126,245,.25)" },
+  gold: { label: "GOLD", bg: "linear-gradient(155deg,#4f4220 0%,#241d0c 90%)", ring: "#e8c349", ink: "#f6e9b8", chip: "rgba(232,195,73,.2)" },
+  silver: { label: "SILVER", bg: "linear-gradient(155deg,#3b3e46 0%,#1c1e24 90%)", ring: "#c6cbd4", ink: "#e7ebf2", chip: "rgba(198,203,212,.18)" },
+  bronze: { label: "BRONZE", bg: "linear-gradient(155deg,#412d1c 0%,#211710 90%)", ring: "#c47b43", ink: "#f0d2b4", chip: "rgba(196,123,67,.2)" },
+};
 
 type Step = "idle" | "register" | "approve" | "join" | "save" | "done";
 
 function Segmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { v: T; label: string; disabled?: boolean }[];
-  onChange: (v: T) => void;
-}) {
+  value, options, onChange,
+}: { value: T; options: { v: T; label: string; disabled?: boolean }[]; onChange: (v: T) => void }) {
   return (
     <div className="flex gap-1 rounded-xl border border-line bg-surface p-1">
       {options.map((o) => (
@@ -135,12 +182,64 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
+// ── the collectible: a FIFA-style agent card driven live by the strategy ──
+function AgentCard({ f }: { f: Form }) {
+  const { ovr, stats, role, rarity, buys } = computeCard(f);
+  const r = RARITY[rarity];
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl p-5 shadow-xl"
+      style={{ background: r.bg, border: `1px solid ${r.ring}`, boxShadow: `0 0 32px ${r.ring}22, inset 0 1px 0 ${r.ring}33`, color: r.ink }}
+    >
+      {/* sheen */}
+      <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full opacity-20" style={{ background: r.ring, filter: "blur(40px)" }} />
+
+      <div className="relative flex items-start justify-between">
+        <div className="leading-none">
+          <div className="num text-4xl font-extrabold" style={{ color: r.ink }}>{ovr}</div>
+          <div className="mono mt-1 text-xs font-bold tracking-widest" style={{ color: r.ring }}>{role}</div>
+          <div className="mt-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold tracking-wider" style={{ background: r.chip, color: r.ink }}>
+            ◆ ARC
+          </div>
+        </div>
+        <span className="mono rounded-md px-2 py-0.5 text-[9px] font-bold tracking-[0.2em]" style={{ background: r.chip, color: r.ink }}>{r.label}</span>
+      </div>
+
+      <div className="relative mt-1 flex flex-col items-center">
+        <div className="rounded-2xl p-1" style={{ boxShadow: `0 0 0 2px ${r.ring}55` }}>
+          <Avatar name={f.name} avatar={{ style: f.avatarStyle, seed: f.avatarSeed }} size={92} />
+        </div>
+        <div className="mt-2 max-w-full truncate text-center text-lg font-extrabold uppercase tracking-wide" style={{ color: r.ink }}>
+          {f.name || "Untitled"}
+        </div>
+      </div>
+
+      <div className="relative mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t pt-3" style={{ borderColor: `${r.ring}33` }}>
+        {stats.map((s) => (
+          <div key={s.k} className="flex items-center gap-2">
+            <span className="num w-7 text-sm font-extrabold" style={{ color: r.ink }}>{s.v}</span>
+            <span className="mono text-[10px] font-bold tracking-wider" style={{ color: r.ring }}>{s.k}</span>
+            <span className="ml-auto h-1.5 w-12 overflow-hidden rounded-full" style={{ background: `${r.ring}22` }}>
+              <span className="block h-full rounded-full" style={{ width: `${s.v}%`, background: r.ring }} />
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="relative mt-3 border-t pt-3 text-center text-[11px]" style={{ borderColor: `${r.ring}33`, color: r.ink }}>
+        {buys.length ? <>buys <span className="font-semibold">{buys.join(" · ")}</span></> : "buys nothing — pure instinct"}
+      </div>
+    </div>
+  );
+}
+
 const lbl = "mono text-[10px] uppercase tracking-wider text-ink3";
 const inputCls = "w-full rounded-xl border border-line bg-surface2 px-3 py-2 text-sm text-ink outline-none transition focus:border-accent/60";
 
 export default function BuildPage() {
   const [f, setF] = useState<Form>(ARCHETYPES[0].form);
   const [advanced, setAdvanced] = useState(false);
+  const [pool, setPool] = useState<string[]>(() => SEED_POOL.slice(0, 11));
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ agentId: string; joinTx: string } | null>(null);
@@ -157,6 +256,15 @@ export default function BuildPage() {
 
   const buys = useMemo(() => SOURCES.filter((s) => f.sources[s].on && parseFloat(f.sources[s].wtp || "0") > 0), [f.sources]);
   const totalWtp = useMemo(() => buys.reduce((sum, s) => sum + (parseFloat(f.sources[s].wtp) || 0), 0), [buys, f.sources]);
+
+  function rollName() {
+    set({ name: `${ADJ[Math.floor(Math.random() * ADJ.length)]} ${NOUN[Math.floor(Math.random() * NOUN.length)]}` });
+  }
+  function shuffleFaces() {
+    const next = Array.from({ length: 11 }, () => randomSeed());
+    setPool(next);
+    set({ avatarSeed: next[0] });
+  }
 
   function buildTemplate(): AgentTemplate {
     return {
@@ -217,6 +325,7 @@ export default function BuildPage() {
           preferBroker: f.broker,
           budget: toBaseUnits(f.budget),
           willingnessToPay: Object.fromEntries(SOURCES.map((s) => [s, f.sources[s].on ? toBaseUnits(f.sources[s].wtp) : "0"])),
+          avatar: { style: f.avatarStyle, seed: f.avatarSeed },
           poolId: "1",
           owner: address,
           onChainAgentId: agentId.toString(),
@@ -234,19 +343,19 @@ export default function BuildPage() {
   if (result) {
     return (
       <div className="max-w-xl">
-        <h1 className="text-3xl font-extrabold tracking-tight">Agent joined 🎉</h1>
-        <div className="glass mt-5 flex items-center gap-4 p-5">
-          <Avatar name={f.name} size={56} />
+        <h1 className="text-3xl font-extrabold tracking-tight">Agent minted 🎉</h1>
+        <div className="mt-5 grid gap-5 sm:grid-cols-[260px_1fr]">
+          <AgentCard f={f} />
           <div>
             <p className="text-sm text-ink2">
               <span className="text-ink">{f.name}</span> is agent #{result.agentId} — you paid the 1 USDC entry from your wallet and own it on-chain.
             </p>
             <div className="mono mt-2 break-all text-[11px] text-accent2">{result.joinTx}</div>
+            <div className="mt-5 flex gap-3">
+              <Link href={`/agent/${result.agentId}`} className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">View agent</Link>
+              <Link href="/leaderboard" className="rounded-xl border border-line2 px-4 py-2 text-sm text-ink hover:bg-surface">Leaderboard</Link>
+            </div>
           </div>
-        </div>
-        <div className="mt-5 flex gap-3">
-          <Link href={`/agent/${result.agentId}`} className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">View agent</Link>
-          <Link href="/leaderboard" className="rounded-xl border border-line2 px-4 py-2 text-sm text-ink hover:bg-surface">Leaderboard</Link>
         </div>
       </div>
     );
@@ -254,7 +363,7 @@ export default function BuildPage() {
 
   const busy = step !== "idle";
   const stepLabel: Record<Step, string> = {
-    idle: "Create + join · 1 USDC entry",
+    idle: "Mint + drop in pool · 1 USDC entry",
     register: "1/3 · registering agent…",
     approve: "2/3 · approve USDC…",
     join: "3/3 · paying entry…",
@@ -265,14 +374,14 @@ export default function BuildPage() {
   return (
     <div>
       <h1 className="text-3xl font-extrabold tracking-tight">Build an agent</h1>
-      <p className="mt-1 text-sm text-ink2">Pick a playstyle, tune it, and drop it in the pool from your wallet.</p>
+      <p className="mt-1 text-sm text-ink2">Pick a playstyle, give it a face, tune its stats, and drop it in the pool from your wallet.</p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         {/* ── form ── */}
         <div className="space-y-5">
           {/* quick start */}
           <div className="glass p-5">
-            <div className={lbl}>quick start</div>
+            <div className={lbl}>quick start · pick a playstyle</div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {ARCHETYPES.map((a) => {
                 const active = a.form.name === f.name;
@@ -281,24 +390,65 @@ export default function BuildPage() {
                     key={a.key}
                     type="button"
                     onClick={() => setF(a.form)}
-                    className={`rounded-xl border p-3 text-left transition ${active ? "border-accent bg-accent/10" : "border-line bg-surface2 hover:border-line2"}`}
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${active ? "border-accent bg-accent/10" : "border-line bg-surface2 hover:border-line2"}`}
                   >
-                    <div className="flex items-center gap-2 font-semibold">
-                      <span className="text-lg">{a.emoji}</span> {a.key}
+                    <Avatar name={a.form.name} avatar={{ style: a.form.avatarStyle, seed: a.form.avatarSeed }} size={38} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        <span>{a.emoji}</span> <span className="truncate">{a.key}</span>
+                      </div>
+                      <div className="mt-0.5 truncate text-xs text-ink2">{a.blurb}</div>
                     </div>
-                    <div className="mt-0.5 text-xs text-ink2">{a.blurb}</div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* identity */}
-          <div className="glass flex items-center gap-4 p-5">
-            <Avatar name={f.name} size={56} />
-            <div className="flex-1">
-              <div className={lbl}>agent name</div>
-              <input className={`${inputCls} mt-1`} value={f.name} onChange={(e) => set({ name: e.target.value })} />
+          {/* identity + avatar picker */}
+          <div className="glass p-5">
+            <div className="flex items-center gap-4">
+              <Avatar name={f.name} avatar={{ style: f.avatarStyle, seed: f.avatarSeed }} size={56} />
+              <div className="flex-1">
+                <div className={lbl}>agent name</div>
+                <div className="mt-1 flex gap-2">
+                  <input className={inputCls} value={f.name} onChange={(e) => set({ name: e.target.value })} />
+                  <button type="button" onClick={rollName} title="random name" className="shrink-0 rounded-xl border border-line bg-surface2 px-3 text-base hover:border-line2">🎲</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <div className={lbl}>choose a face</div>
+              <button type="button" onClick={shuffleFaces} className="mono text-[10px] uppercase tracking-wider text-accent2 hover:text-accent">🎲 shuffle</button>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {AVATAR_STYLES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => set({ avatarStyle: s.id })}
+                  className={`rounded-lg px-2.5 py-1 text-xs transition ${f.avatarStyle === s.id ? "grad-hi font-semibold text-white" : "border border-line bg-surface2 text-ink2 hover:text-ink"}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 grid grid-cols-6 gap-2">
+              {pool.map((seed) => {
+                const selected = seed === f.avatarSeed;
+                return (
+                  <button
+                    key={seed}
+                    type="button"
+                    onClick={() => set({ avatarSeed: seed })}
+                    className={`rounded-xl p-0.5 transition ${selected ? "bg-accent" : "bg-transparent hover:bg-surface2"}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={avatarUrl(f.avatarStyle, seed)} alt={seed} className="h-full w-full rounded-lg border border-line2 bg-surface2" />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -393,7 +543,7 @@ export default function BuildPage() {
 
           {error && <p className="text-sm text-neg">{error}</p>}
           {!isConnected ? (
-            <p className="text-sm text-ink2">Connect your wallet (sidebar) to create + join.</p>
+            <p className="text-sm text-ink2">Connect your wallet (sidebar) to mint + drop your agent.</p>
           ) : !onArc ? (
             <button type="button" onClick={() => switchChain({ chainId: arcChain.id })} className="rounded-xl border border-gold/50 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold">
               Switch to Arc to continue
@@ -405,36 +555,24 @@ export default function BuildPage() {
           )}
         </div>
 
-        {/* ── preview ── */}
+        {/* ── card preview ── */}
         <div className="space-y-5 lg:sticky lg:top-6 lg:self-start">
+          <div className={lbl}>your agent card · live</div>
+          <AgentCard f={f} />
+
           <div className="glass p-5">
-            <div className={lbl}>preview</div>
-            <div className="mt-3 flex items-center gap-3">
-              <Avatar name={f.name} size={52} />
-              <div>
-                <div className="font-bold">{f.name || "Untitled agent"}</div>
-                <div className="mono mt-0.5 text-[11px] text-ink3">{f.risk} risk · {f.broker ? "broker" : "direct"}</div>
-              </div>
+            <div className="flex items-center justify-between">
+              <div className={lbl}>budget</div>
+              <span className="num text-sm font-bold">{f.budget || "0"} USDC</span>
             </div>
-            <p className="mt-3 text-sm text-ink2">{f.persona || "—"}</p>
-            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4">
-              <div>
-                <div className={lbl}>budget</div>
-                <div className="num mt-1 font-bold">{f.budget || "0"} USDC</div>
-              </div>
-              <div>
-                <div className={lbl}>max / match</div>
-                <div className="num mt-1 font-bold">${totalWtp.toFixed(3)}</div>
-              </div>
-              <div className="col-span-2">
-                <div className={lbl}>buys</div>
-                <div className="mt-1 text-sm text-accent2">{buys.length ? buys.join(", ") : "nothing — predicts on its prior"}</div>
-              </div>
+            <div className="mt-2 flex items-center justify-between">
+              <div className={lbl}>max / match</div>
+              <span className="num text-sm font-bold">${totalWtp.toFixed(3)}</span>
             </div>
           </div>
 
           <div className="glass p-5">
-            <div className="font-bold">Joining · 3 transactions</div>
+            <div className="font-bold">Minting · 3 transactions on Arc</div>
             <ol className="mt-3 space-y-2.5 text-sm">
               {[
                 ["Register", "your agent on-chain — you own it"],

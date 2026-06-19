@@ -18,6 +18,7 @@ export interface LeaderboardEntry {
   spent: string;
   roi: number;
   preferBroker: boolean;
+  avatar?: { style: string; seed: string };
 }
 
 function finalFixtureMap(poolId: string): Map<string, Fixture> {
@@ -67,6 +68,7 @@ export function getLeaderboard(poolId: string): LeaderboardEntry[] {
       spent: r.spent,
       roi: r.roi,
       preferBroker: a?.template.dataPreference.preferBroker ?? false,
+      avatar: a?.avatar,
     };
   });
 }

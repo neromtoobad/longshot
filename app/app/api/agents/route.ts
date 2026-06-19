@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 });
   }
 
+  // Cosmetic avatar (style + seed) — kept off the template hash; stored only for display.
+  const av = (body.avatar ?? {}) as Record<string, unknown>;
+  const avatar =
+    typeof av.style === "string" && typeof av.seed === "string" && av.style && av.seed
+      ? { style: av.style, seed: av.seed }
+      : undefined;
+
   const agent = saveAgent({
     agentId: typeof body.onChainAgentId === "string" && body.onChainAgentId ? body.onChainAgentId : undefined,
     owner: typeof body.owner === "string" && body.owner ? body.owner : "0x0000000000000000000000000000000000000000",
@@ -48,6 +55,7 @@ export async function POST(req: NextRequest) {
     walletId: "", // DCW data-wallet provisioned at matchday
     walletAddress: "",
     onChainAgentId: typeof body.onChainAgentId === "string" ? body.onChainAgentId : undefined,
+    avatar,
     template: {
       name: template.name,
       persona: template.persona,

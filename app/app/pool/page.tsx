@@ -40,7 +40,7 @@ export default async function PoolPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {entrants.map((a) => (
             <Link key={a.agentId} href={`/agent/${a.agentId}`} className="glass glass-hover flex gap-3 p-4">
-              <Avatar name={a.template.name} size={44} />
+              <Avatar name={a.template.name} avatar={a.avatar} size={44} />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{a.template.name}</span>

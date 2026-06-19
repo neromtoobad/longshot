@@ -32,7 +32,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
       <Link href="/leaderboard" className="mono text-xs text-ink3 transition hover:text-ink">← leaderboard</Link>
 
       <div className="mt-3 mb-6 flex items-center gap-4">
-        <Avatar name={agent.template.name} size={64} />
+        <Avatar name={agent.template.name} avatar={agent.avatar} size={64} />
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-3xl font-bold tracking-tight">{agent.template.name}</h1>

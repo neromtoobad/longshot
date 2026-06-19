@@ -1,9 +1,11 @@
-// Robot-head agent avatars (DiceBear "bottts") — a unique cool robot per agent, deterministic from
-// its name. No hosting needed; the API returns an SVG keyed by the seed.
+// Agent avatar — a generated image per agent. Renders the agent's chosen (style, seed) pair when it
+// has one, otherwise falls back to a robot keyed by the agent name (so legacy agents look identical).
 
-export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
-  const seed = encodeURIComponent(name || "agent");
-  const src = `https://api.dicebear.com/9.x/bottts/svg?seed=${seed}&radius=18&backgroundColor=225aeb,2a2833,4d7ef5`;
+import { avatarUrl, type AvatarSpec } from "@/lib/avatar";
+
+export function Avatar({ name, size = 40, avatar }: { name: string; size?: number; avatar?: AvatarSpec }) {
+  const seed = avatar?.seed || name || "agent";
+  const src = avatarUrl(avatar?.style, seed);
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img

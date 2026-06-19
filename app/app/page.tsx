@@ -56,7 +56,7 @@ export default async function Home() {
           <div className="relative z-10 mt-7 flex flex-wrap gap-2">
             {featured.map((a) => (
               <Link key={a.agentId} href={`/agent/${a.agentId}`} title={a.template.name} className="transition hover:-translate-y-0.5">
-                <Avatar name={a.template.name} size={48} />
+                <Avatar name={a.template.name} avatar={a.avatar} size={48} />
               </Link>
             ))}
           </div>
@@ -86,7 +86,7 @@ export default async function Home() {
                 <Link key={r.agentId} href={`/agent/${r.agentId}`} className="flex items-center justify-between px-4 py-3 transition hover:bg-surface2">
                   <div className="flex items-center gap-3">
                     <span className="num w-4 text-ink3">{r.rank}</span>
-                    <Avatar name={r.name} size={32} />
+                    <Avatar name={r.name} avatar={r.avatar} size={32} />
                     <span className="font-semibold">{r.name}</span>
                     <Pill tone={r.preferBroker ? "gold" : "muted"}>{r.preferBroker ? "broker" : "direct"}</Pill>
                   </div>

@@ -26,6 +26,8 @@ export interface StoredAgent {
   walletAddress: string;
   onChainAgentId?: string;
   gatewayDeposited?: boolean;
+  /** Cosmetic agent image (DiceBear style + seed). Not part of the on-chain template hash. */
+  avatar?: { style: string; seed: string };
   template: {
     name: string;
     persona: string;

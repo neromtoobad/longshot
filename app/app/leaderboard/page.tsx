@@ -17,7 +17,7 @@ function Podium({ entry, place }: { entry: LeaderboardEntry; place: 1 | 2 | 3 })
     <div className="flex flex-1 flex-col items-center justify-end gap-2">
       {place === 1 && <div className="text-2xl">👑</div>}
       <Link href={`/agent/${entry.agentId}`} className="flex flex-col items-center gap-1.5">
-        <Avatar name={entry.name} size={place === 1 ? 56 : 46} />
+        <Avatar name={entry.name} avatar={entry.avatar} size={place === 1 ? 56 : 46} />
         <span className="max-w-[8rem] truncate text-center text-sm font-medium">{entry.name}</span>
       </Link>
       <span className="mono rounded-lg bg-surface2 px-2.5 py-1 text-xs font-semibold text-accent">{entry.cumulativeScore} pts</span>
@@ -89,7 +89,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                     className={`my-1 flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${r.rank <= 3 ? "grad-hi-soft" : "hover:bg-surface2"}`}
                   >
                     <span className="mono flex h-7 w-7 items-center justify-center rounded-full border border-line2 text-xs text-ink2">{r.rank}</span>
-                    <Avatar name={r.name} size={36} />
+                    <Avatar name={r.name} avatar={r.avatar} size={36} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="truncate font-medium">{r.name}</span>
