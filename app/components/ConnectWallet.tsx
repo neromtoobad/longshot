@@ -11,7 +11,7 @@ function short(addr: string) {
 }
 
 export function ConnectWallet() {
-  const { address, isConnected, walletType, circleAvailable, connectCircle, connectMetaMask, disconnect, isConnecting, circleError } = useWallet();
+  const { address, isConnected, walletType, circleAvailable, socialAvailable, connectCircle, connectGoogle, connectMetaMask, disconnect, isConnecting, circleError } = useWallet();
   const { chainId } = useAccount();
   const { switchChain } = useSwitchChain();
   const [open, setOpen] = useState(false);
@@ -69,10 +69,20 @@ export function ConnectWallet() {
             onClick={() => { connectCircle(); if (circleAvailable) setOpen(false); }}
             className="flex w-full items-start gap-3 rounded-lg p-3 text-left transition hover:bg-surface2"
           >
-            <span className="text-lg">⚡</span>
+            <span className="text-lg">🔐</span>
             <span>
-              <span className="block text-sm font-semibold">Smart Wallet</span>
-              <span className="block text-[11px] text-ink2">{circleAvailable ? "PIN · Circle smart wallet on Arc" : "Circle — needs setup (App ID)"}</span>
+              <span className="block text-sm font-semibold">Smart Wallet · PIN</span>
+              <span className="block text-[11px] text-ink2">{circleAvailable ? "Circle smart wallet on Arc · set a PIN" : "Circle — needs setup (App ID)"}</span>
+            </span>
+          </button>
+          <button
+            onClick={() => { connectGoogle(); if (socialAvailable) setOpen(false); }}
+            className="flex w-full items-start gap-3 rounded-lg p-3 text-left transition hover:bg-surface2"
+          >
+            <span className="text-lg">🇬</span>
+            <span>
+              <span className="block text-sm font-semibold">Sign in with Google</span>
+              <span className="block text-[11px] text-ink2">{socialAvailable ? "Circle smart wallet · no seed phrase" : "Google — needs setup (client ID)"}</span>
             </span>
           </button>
           <button
