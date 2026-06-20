@@ -1,4 +1,5 @@
-import { getSettlements, getStats } from "@/lib/data";
+import { getBrokerNetwork, getSettlements, getStats } from "@/lib/data";
+import { BrokerNetwork } from "@/components/BrokerNetwork";
 import { PageHeader, Stat, usdc } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ const shortAddr = (a: string | null) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}`
 export default async function StatsPage() {
   const s = getStats("1");
   const settle = getSettlements("1", 12);
+  const net = getBrokerNetwork("1");
 
   return (
     <div>
@@ -35,6 +37,8 @@ export default async function StatsPage() {
         <Stat label="Brokered sales" value={s.broker.totalSales.toLocaleString()} sub="routed through the broker" />
         <Stat label="Payment chain depth" value={String(s.broker.paymentChainDepth)} sub="agent → broker → source" />
       </Group>
+
+      <BrokerNetwork net={net} />
 
       <Group label="traction">
         <Stat label="Agents registered" value={s.agentsRegistered.toLocaleString()} sub="real users" />

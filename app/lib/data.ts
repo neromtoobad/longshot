@@ -5,7 +5,7 @@ import type { Fixture } from "@longshot/shared";
 import { buildLeaderboard, buildScoreRows, scorePrediction, type ScoredEntry } from "@longshot/shared";
 import { allFixtures } from "./fixtures-store";
 import { readAgents, readPredictions, readPurchases, readSettlements, type StoredAgent } from "./store";
-import { brokerRevenue } from "./broker";
+import { brokerCatalog, brokerRevenue } from "./broker";
 import { readPoolInfo, type PoolInfo } from "./pool";
 
 export interface LeaderboardEntry {
@@ -168,6 +168,21 @@ export function getActivity(poolId: string, limit = 24): ActivityItem[] {
   }
 
   return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, limit);
+}
+
+/** The agent-to-agent payment network (RFB 3): which agents route through the broker, the broker's
+ *  per-source markup catalog, and realized sales — for the network visualization. */
+export function getBrokerNetwork(poolId: string) {
+  const agents = readAgents().filter((a) => a.poolId === poolId);
+  const catalog = brokerCatalog();
+  const revenue = brokerRevenue();
+  return {
+    markupBps: catalog.markupBps,
+    brokerAgents: agents.filter((a) => a.template.dataPreference.preferBroker).map((a) => ({ id: a.agentId, name: a.template.name, avatar: a.avatar })),
+    directAgents: agents.filter((a) => !a.template.dataPreference.preferBroker).map((a) => ({ id: a.agentId, name: a.template.name, avatar: a.avatar })),
+    catalog: catalog.sources, // {source, basePriceUSDC, markupUSDC, brokerPriceUSDC, reputation}
+    revenue, // {totalSales, totalRevenueUSDC, totalPassthroughUSDC, bySource, paymentChainDepth}
+  };
 }
 
 export interface SettlementTrace {
