@@ -3,14 +3,10 @@ import { allFixtures } from "@/lib/fixtures-store";
 import { readAgents, readPredictions } from "@/lib/store";
 import { scorePrediction } from "@longshot/shared";
 import { Avatar } from "@/components/Avatar";
+import { ThinkReplay } from "@/components/ThinkReplay";
 import { Empty, Pill, Stat, usdc } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
-
-function toBase(usdcStr: string): string {
-  const n = parseFloat(usdcStr);
-  return String(Math.round((Number.isFinite(n) ? n : 0) * 1_000_000));
-}
 
 export default async function AgentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -81,21 +77,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {p.decisions && p.decisions.length > 0 && (
-                  <div className="mt-3 border-t border-line pt-3">
-                    <div className="mono mb-2 text-[10px] uppercase tracking-wider text-ink3">evidence decisions</div>
-                    <div className="space-y-1">
-                      {p.decisions.map((d) => (
-                        <div key={d.source} className="flex items-baseline gap-2 text-xs">
-                          <span className={`mono w-12 font-semibold ${d.decision === "buy" ? "text-pos" : "text-ink3"}`}>
-                            {d.decision === "buy" ? "BUY" : "SKIP"}
-                          </span>
-                          <span className="w-16 text-ink2">{d.source}</span>
-                          <span className="mono w-20 text-ink3">{usdc(toBase(d.priceUSDC))} USDC</span>
-                          <span className="text-ink3">{d.reason}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <ThinkReplay decisions={p.decisions} rationale={p.rationale ?? ""} homeScore={p.homeScore} awayScore={p.awayScore} />
                 )}
               </div>
             );
