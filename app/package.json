@@ -12,7 +12,8 @@
     "x402:smoke": "tsx --env-file=../.env scripts/x402-smoke.ts",
     "fixtures:sync": "tsx --env-file=../.env scripts/fixtures-sync.ts",
     "resolve:pool": "tsx --env-file=../.env scripts/resolve-pool.ts",
-    "reconcile": "tsx --env-file=../.env scripts/reconcile-settlements.ts"
+    "reconcile": "tsx --env-file=../.env scripts/reconcile-settlements.ts",
+    "tick": "tsx --env-file=../.env scripts/tick.ts"
   },
   "dependencies": {
     "@circle-fin/modular-wallets-core": "^1.0.13",
