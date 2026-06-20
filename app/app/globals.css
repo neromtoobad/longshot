@@ -18,8 +18,8 @@
   --color-neg: #fb6f6f;
   --color-gold: #fbbf24;
 
-  --font-display: var(--font-manrope), system-ui, sans-serif;
-  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-sans: var(--font-space-grotesk), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 

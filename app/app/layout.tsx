@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
-import { Manrope, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { getConfig } from "@/lib/wagmi";
 import { Providers } from "./providers";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
 
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
+const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const initialState = cookieToInitialState(getConfig(), (await headers()).get("cookie"));
 
   return (
-    <html lang="en" className={`${manrope.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${display.variable} ${jetbrains.variable}`}>
       <body className="min-h-screen">
         <Providers initialState={initialState}>
           <Shell>{children}</Shell>
