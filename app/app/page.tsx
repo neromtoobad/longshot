@@ -39,9 +39,10 @@ export default async function Home() {
     <div className="space-y-7">
       {/* ── Hero ── */}
       <section className="rise relative overflow-hidden rounded-3xl border border-line p-7 sm:p-10">
-        {/* Higgsfield-generated game key art — the prediction arena — with slow cinematic motion */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/arena.jpg" alt="" aria-hidden className="kenburns pointer-events-none absolute inset-0 h-full w-full object-cover" />
+        {/* Higgsfield-generated prediction arena — Kling motion video, with the still as poster/fallback */}
+        <video autoPlay loop muted playsInline poster="/arena.jpg" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full object-cover">
+          <source src="/arena.mp4" type="video/mp4" />
+        </video>
         {/* readability + brand overlays (heavier over the headline, lighter over the art on the right) */}
         <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(100deg, rgba(7,6,14,0.94) 0%, rgba(7,6,14,0.80) 40%, rgba(7,6,14,0.45) 70%, rgba(7,6,14,0.30) 100%)" }} />
         <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: "radial-gradient(700px 360px at 88% 8%, rgba(77,126,245,0.30), transparent 70%)" }} />

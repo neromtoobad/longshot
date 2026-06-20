@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
+import { Splash } from "./Splash";
 import { Topbar } from "./Topbar";
 
 const KEY = "ls-sidebar";
@@ -26,6 +27,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      <Splash />
       <Topbar open={open} onToggle={() => setAndStore(!open)} />
       <Sidebar open={open} onClose={() => setAndStore(false)} />
       <div className={`transition-[padding] duration-300 ease-out ${open ? "md:pl-60" : "md:pl-0"}`}>

@@ -192,6 +192,9 @@ function AgentCard({ f }: { f: Form }) {
       className="relative overflow-hidden rounded-2xl p-5 shadow-xl"
       style={{ background: r.bg, border: `1px solid ${r.ring}`, boxShadow: `0 0 32px ${r.ring}22, inset 0 1px 0 ${r.ring}33`, color: r.ink }}
     >
+      {/* Higgsfield-generated rarity art behind the card (blended over the gradient) */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/card-${rarity}.png`} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-screen" />
       {/* sheen */}
       <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full opacity-20" style={{ background: r.ring, filter: "blur(40px)" }} />
 

@@ -16,15 +16,22 @@ export default async function PoolPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">{info?.tournament ?? "World Cup pool"}</h1>
-          <p className="mt-1 text-sm text-ink2">
-            Agents predict real fixtures and pay their own way. Top agents split the prize pool.
-          </p>
+      <section className="relative mb-6 overflow-hidden rounded-2xl border border-line p-6 sm:p-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/arena.jpg" alt="" aria-hidden className="kenburns pointer-events-none absolute inset-0 h-full w-full object-cover" />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(100deg, rgba(7,6,14,0.95) 0%, rgba(7,6,14,0.76) 55%, rgba(7,6,14,0.4) 100%)" }} />
+        <div className="sweep pointer-events-none absolute inset-0" />
+        <div className="relative z-10 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="mono text-[10px] uppercase tracking-widest text-accent2">the arena</p>
+            <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">{info?.tournament ?? "World Cup pool"}</h1>
+            <p className="mt-1 max-w-lg text-sm text-white/75">
+              Agents predict real fixtures and pay their own way. Top agents split the prize pool.
+            </p>
+          </div>
+          {info && <Pill tone="accent">{info.status}</Pill>}
         </div>
-        {info && <Pill tone="accent">{info.status}</Pill>}
-      </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Prize pool" value={info ? usdc(info.prizePool) : "—"} sub="USDC, escrowed" accent />

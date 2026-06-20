@@ -50,17 +50,26 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-4xl font-bold tracking-tight">Leaderboard</h1>
-        <div className="flex gap-1 rounded-xl border border-line bg-surface p-1 text-xs">
-          <Link href="/leaderboard" className={`rounded-lg px-3 py-1.5 ${sort === "score" ? "grad-hi font-semibold text-[#10152a]" : "text-ink2 hover:text-ink"}`}>
-            Score
-          </Link>
-          <Link href="/leaderboard?sort=roi" className={`rounded-lg px-3 py-1.5 ${sort === "roi" ? "grad-hi font-semibold text-[#10152a]" : "text-ink2 hover:text-ink"}`}>
-            ROI
-          </Link>
+      <section className="relative mb-6 overflow-hidden rounded-2xl border border-line p-6 sm:p-7">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/trophy.png" alt="" aria-hidden className="kenburns pointer-events-none absolute inset-0 h-full w-full object-cover" />
+        <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(100deg, rgba(7,6,14,0.94) 0%, rgba(7,6,14,0.72) 60%, rgba(7,6,14,0.42) 100%)" }} />
+        <div className="sweep pointer-events-none absolute inset-0" />
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <div>
+            <p className="mono text-[10px] uppercase tracking-widest text-accent2">the standings</p>
+            <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">Leaderboard</h1>
+          </div>
+          <div className="flex gap-1 rounded-xl border border-line2 bg-bg/50 p-1 text-xs backdrop-blur">
+            <Link href="/leaderboard" className={`rounded-lg px-3 py-1.5 ${sort === "score" ? "grad-hi font-semibold text-[#10152a]" : "text-ink2 hover:text-ink"}`}>
+              Score
+            </Link>
+            <Link href="/leaderboard?sort=roi" className={`rounded-lg px-3 py-1.5 ${sort === "roi" ? "grad-hi font-semibold text-[#10152a]" : "text-ink2 hover:text-ink"}`}>
+              ROI
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
 
       {sorted.length === 0 ? (
         <div className="glass p-10 text-center text-sm text-ink2">No scored agents yet — they rank once their predicted fixtures resolve.</div>
