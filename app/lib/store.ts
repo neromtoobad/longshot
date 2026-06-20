@@ -64,6 +64,21 @@ export interface StoredPrediction {
   createdAt: string;
 }
 
+export interface Settlement {
+  uuid: string;
+  status: string;
+  fromAddress: string | null;
+  toAddress: string | null;
+  amount: string | null;
+  network: string | null;
+  settledAt: string | null;
+  batchTxHash: string | null;
+}
+
+export function readSettlements(): Settlement[] {
+  return read<Settlement[]>("settlements.json", []);
+}
+
 export function readAgents(): StoredAgent[] {
   return read<StoredAgent[]>("agents.json", []);
 }

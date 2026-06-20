@@ -4,7 +4,7 @@
 import type { Fixture } from "@longshot/shared";
 import { buildLeaderboard, buildScoreRows, scorePrediction, type ScoredEntry } from "@longshot/shared";
 import { allFixtures } from "./fixtures-store";
-import { readAgents, readPredictions, readPurchases, type StoredAgent } from "./store";
+import { readAgents, readPredictions, readPurchases, readSettlements, type StoredAgent } from "./store";
 import { brokerRevenue } from "./broker";
 import { readPoolInfo, type PoolInfo } from "./pool";
 
@@ -168,6 +168,57 @@ export function getActivity(poolId: string, limit = 24): ActivityItem[] {
   }
 
   return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, limit);
+}
+
+export interface SettlementTrace {
+  uuid: string;
+  status: string;
+  agentName: string;
+  source: string;
+  fromAddress: string | null;
+  toAddress: string | null;
+  amountUSDC: string | null;
+  onArc: boolean;
+  settledAt: string | null;
+  batchTxHash: string | null;
+}
+
+export interface SettlementSummary {
+  total: number;
+  completed: number;
+  rows: SettlementTrace[];
+}
+
+/** Reconciled x402 settlements joined with the agent + source that paid them (for the proof panel). */
+export function getSettlements(poolId: string, limit = 12): SettlementSummary {
+  const settlements = readSettlements();
+  const agents = readAgents().filter((a) => a.poolId === poolId);
+  const byId = new Map(agents.map((a) => [a.agentId, a]));
+  // Map a settlement UUID -> the purchase that produced it (agent + source).
+  const purchaseByUuid = new Map(readPurchases().map((p) => [p.settlementUuid, p]));
+
+  const rows: SettlementTrace[] = settlements.map((s) => {
+    const purchase = purchaseByUuid.get(s.uuid);
+    const agent = purchase ? byId.get(purchase.agentId) : undefined;
+    return {
+      uuid: s.uuid,
+      status: s.status,
+      agentName: agent?.template.name ?? "agent",
+      source: purchase?.source ?? "evidence",
+      fromAddress: s.fromAddress,
+      toAddress: s.toAddress,
+      amountUSDC: s.amount,
+      onArc: (s.network ?? "").includes("5042002"),
+      settledAt: s.settledAt,
+      batchTxHash: s.batchTxHash,
+    };
+  });
+
+  return {
+    total: settlements.length,
+    completed: settlements.filter((s) => s.status === "completed" || s.status === "confirmed").length,
+    rows: rows.filter((r) => purchaseByUuid.has(r.uuid)).slice(0, limit),
+  };
 }
 
 export interface PoolView {
