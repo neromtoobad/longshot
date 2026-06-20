@@ -115,6 +115,14 @@ body {
   .float { animation: float 6s ease-in-out infinite; }
   @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
+  /* Slow cinematic zoom/pan for the game key-art hero (Ken Burns). */
+  .kenburns { animation: kenburns 26s ease-in-out infinite alternate; transform-origin: 60% 45%; }
+  @keyframes kenburns { 0% { transform: scale(1.06) translate3d(0,0,0); } 100% { transform: scale(1.16) translate3d(-1.5%,-1.5%,0); } }
+
+  /* A slow light sweep across the hero — esports broadcast feel. */
+  .sweep { background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.06) 48%, transparent 66%); background-size: 250% 100%; animation: sweep 7s ease-in-out infinite; }
+  @keyframes sweep { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+
   /* Gradient text. */
   .text-grad {
     background: linear-gradient(92deg, #ffffff 0%, var(--color-accent2) 60%, var(--color-accent) 100%);
@@ -129,6 +137,6 @@ body {
   .rise-4 { animation-delay: 0.28s; }
 
   @media (prefers-reduced-motion: reduce) {
-    .marquee, .float, .live-dot { animation: none; }
+    .marquee, .float, .live-dot, .kenburns, .sweep { animation: none; }
   }
 }

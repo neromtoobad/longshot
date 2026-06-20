@@ -38,12 +38,14 @@ export default async function Home() {
   return (
     <div className="space-y-7">
       {/* ── Hero ── */}
-      <section
-        className="rise relative overflow-hidden rounded-3xl border border-line p-7 sm:p-10"
-        style={{ background: "linear-gradient(120deg, #225aeb 0%, #1a1a44 46%, #07060e 100%)" }}
-      >
-        <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(620px 320px at 88% 12%, #4d7ef5, transparent 70%)" }} />
-        <div className="pointer-events-none absolute -left-16 bottom-[-60px] h-64 w-64 rounded-full opacity-25" style={{ background: "#225aeb", filter: "blur(70px)" }} />
+      <section className="rise relative overflow-hidden rounded-3xl border border-line p-7 sm:p-10">
+        {/* Higgsfield-generated game key art — the prediction arena — with slow cinematic motion */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/arena.jpg" alt="" aria-hidden className="kenburns pointer-events-none absolute inset-0 h-full w-full object-cover" />
+        {/* readability + brand overlays (heavier over the headline, lighter over the art on the right) */}
+        <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(100deg, rgba(7,6,14,0.94) 0%, rgba(7,6,14,0.80) 40%, rgba(7,6,14,0.45) 70%, rgba(7,6,14,0.30) 100%)" }} />
+        <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: "radial-gradient(700px 360px at 88% 8%, rgba(77,126,245,0.30), transparent 70%)" }} />
+        <div className="sweep pointer-events-none absolute inset-0" />
 
         <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1.25fr_1fr]">
           <div>
