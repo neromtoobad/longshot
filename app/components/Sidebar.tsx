@@ -17,6 +17,7 @@ const NAV: { href: string; label: string; icon: ReactNode }[] = [
   { href: "/pool", label: "Pool", icon: <Icon d="M3 7h18M3 12h18M3 17h18" /> },
   { href: "/leaderboard", label: "Leaderboard", icon: <Icon d="M6 20V10M12 20V4M18 20v-7" /> },
   { href: "/stats", label: "Stats", icon: <Icon d="M3 12h4l3 8 4-16 3 8h4" /> },
+  { href: "/market", label: "Market", icon: <Icon d="M5 8h14l-1 12H6L5 8zM9 8a3 3 0 0 1 6 0" /> },
   { href: "/build", label: "Build", icon: <Icon d="M12 5v14M5 12h14" /> },
 ];
 

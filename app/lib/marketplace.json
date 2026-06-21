@@ -1,0 +1,366 @@
+{
+  "syncedAt": "2026-06-21T22:26:03.012Z",
+  "source": "Circle Agent Marketplace (api.circle.com/v2/x402/discover)",
+  "services": [
+    {
+      "resource": "https://parallelmpp.dev/api/search",
+      "provider": "Parallel",
+      "description": "Parallel web search with structured results and excerpts.",
+      "category": "",
+      "priceUSDC": "0.010",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://parallelmpp.dev/api/task",
+      "provider": "Parallel",
+      "description": "Start an async deep research task and poll the returned run ID for results.",
+      "category": "",
+      "priceUSDC": "0.300",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://parallelmpp.dev/api/extract",
+      "provider": "Parallel",
+      "description": "Extract relevant content from one or more URLs.",
+      "category": "",
+      "priceUSDC": "0.010",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/tavily/search",
+      "provider": "AIsa API",
+      "description": "Execute a search query using Tavily Search.",
+      "category": "",
+      "priceUSDC": "0.0096",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/perplexity/sonar-deep-research",
+      "provider": "AIsa API",
+      "description": "Sonar Deep Research — exhaustive research & comprehensive reports",
+      "category": "",
+      "priceUSDC": "0.012",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/tavily/crawl",
+      "provider": "AIsa API",
+      "description": "Graph-based website traversal tool using Tavily Crawl.",
+      "category": "",
+      "priceUSDC": "0.0096",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/tavily/extract",
+      "provider": "AIsa API",
+      "description": "Extract web page content from specified URLs using Tavily Extract.",
+      "category": "",
+      "priceUSDC": "0.0096",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/tavily/map",
+      "provider": "AIsa API",
+      "description": "Generate comprehensive site maps using Tavily Map.",
+      "category": "",
+      "priceUSDC": "0.0096",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/scholar/search/explain",
+      "provider": "AIsa API",
+      "description": "Explain search results",
+      "category": "",
+      "priceUSDC": "0.0024",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/scholar/search/scholar",
+      "provider": "AIsa API",
+      "description": "Search academic papers",
+      "category": "",
+      "priceUSDC": "0.0024",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/scholar/search/web",
+      "provider": "AIsa API",
+      "description": "Search the web",
+      "category": "",
+      "priceUSDC": "0.0024",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.itsgloria.ai/news-by-keyword",
+      "provider": "Gloria AI",
+      "description": "Get the news about a topic by keyword, delivering the most recent 20 headlines.",
+      "category": "",
+      "priceUSDC": "0.050",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.itsgloria.ai/news",
+      "provider": "Gloria AI",
+      "description": "Get the latest news about a covered news topic, delivering the most recent 10 headlines.",
+      "category": "",
+      "priceUSDC": "0.030",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.itsgloria.ai/news-ticker-summary",
+      "provider": "Gloria AI",
+      "description": "Get a 24-hour news summary for a specific token/ticker, combining internal news data with web search results. Returns decision-grade bullet points for fund mana",
+      "category": "",
+      "priceUSDC": "0.031",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.messari.io/news/v1/news/feed",
+      "provider": "Messari",
+      "description": "Get a paginated crypto news feed with per-asset sentiment signals.",
+      "category": "",
+      "priceUSDC": "0.550",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.itsgloria.ai/recaps",
+      "provider": "Gloria AI",
+      "description": "Get a recap of the news or summary of a covered news topic over the past 12-24 hours.",
+      "category": "",
+      "priceUSDC": "0.100",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.messari.io/ai/v2/chat/completions",
+      "provider": "Messari",
+      "description": "MessariAI chat completion",
+      "category": "",
+      "priceUSDC": "0.250",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.messari.io/funding/v1/mergers-and-acquisitions",
+      "provider": "Messari",
+      "description": "Get crypto M&A deals with acquirer, target, and deal values.",
+      "category": "",
+      "priceUSDC": "0.250",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.messari.io/funding/v1/organizations",
+      "provider": "Messari",
+      "description": "Discover organizations with funding and investment activity.",
+      "category": "",
+      "priceUSDC": "0.250",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/routes/dest_id",
+      "provider": "StableTravel",
+      "description": "Get route info between airports.",
+      "category": "",
+      "priceUSDC": "0.040",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/nearby",
+      "provider": "StableTravel",
+      "description": "Find airports near a specific airport.",
+      "category": "",
+      "priceUSDC": "0.0080",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id",
+      "provider": "StableTravel",
+      "description": "Get airport info by code.",
+      "category": "",
+      "priceUSDC": "0.030",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/delays",
+      "provider": "StableTravel",
+      "description": "Get delays for a specific airport.",
+      "category": "",
+      "priceUSDC": "0.020",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/flights/arrivals",
+      "provider": "StableTravel",
+      "description": "Get arrivals at an airport.",
+      "category": "",
+      "priceUSDC": "0.010",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/flights/departures",
+      "provider": "StableTravel",
+      "description": "Get departures from an airport.",
+      "category": "",
+      "priceUSDC": "0.010",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/weather/forecast",
+      "provider": "StableTravel",
+      "description": "Get TAF weather forecast.",
+      "category": "",
+      "priceUSDC": "0.0040",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://stabletravel.dev/api/flightaware/airports/id/weather/observations",
+      "provider": "StableTravel",
+      "description": "Get METAR weather observations.",
+      "category": "",
+      "priceUSDC": "0.0040",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/category-metrics",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Prediction market category metrics",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/pm/polymarket/crypto-updown",
+      "provider": "BlockRun.AI",
+      "description": "List crypto up/down prediction markets",
+      "category": "",
+      "priceUSDC": "0.0010",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/kalshi/events",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Kalshi events list",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/kalshi/markets",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Kalshi markets list",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/kalshi/open-interest",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Kalshi open interest",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/kalshi/prices",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Kalshi prices",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/kalshi/ranking",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Kalshi rankings",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://nano.blockrun.ai/api/v1/surf/prediction-market/kalshi/trades",
+      "provider": "BlockRun.AI",
+      "description": "Surf — Kalshi trade history",
+      "category": "",
+      "priceUSDC": "0.0075",
+      "network": "Polygon",
+      "rawNetwork": "eip155:137"
+    },
+    {
+      "resource": "https://x402-data-tools.prd.arrays.org/api/v1/crypto/market-cap",
+      "provider": "Arrays",
+      "description": "Market capitalization data for cryptocurrencies",
+      "category": "",
+      "priceUSDC": "0.0080",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://x402-data-tools.prd.arrays.org/api/v1/crypto/market-metrics",
+      "provider": "Arrays",
+      "description": "Comprehensive market metrics including volatility, liquidity, and trading activity",
+      "category": "",
+      "priceUSDC": "0.030",
+      "network": "Base",
+      "rawNetwork": "eip155:8453"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/coingecko/coins/categories",
+      "provider": "AIsa API",
+      "description": "Categories with Market Data",
+      "category": "",
+      "priceUSDC": "0.0080",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/coingecko/coins/{id}/contract/{contract_address}/market_chart",
+      "provider": "AIsa API",
+      "description": "Historical market data for a token by contract address.",
+      "category": "",
+      "priceUSDC": "0.0080",
+      "network": "Base Sepolia",
+      "rawNetwork": "eip155:84532"
+    },
+    {
+      "resource": "https://api.aisa.one/apis/v2/scholar/search/mixed",
+      "provider": "AIsa API",
+      "description": "Smart search combining web and academic results",
+      "category": "",
+      "priceUSDC": "0.0024",
+      "network": "Ethereum",
+      "rawNetwork": "eip155:1"
+    }
+  ]
+}
