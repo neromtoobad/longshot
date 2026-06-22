@@ -13,6 +13,7 @@ import type { AgentConfig } from "./template.js";
 import { buyEvidence, type BuyEvidenceResult } from "./paying/client.js";
 import type { X402Signer } from "./paying/signers.js";
 import { veniceJson } from "./model/venice.js";
+import { fetchMarketplaceResearch } from "./paying/marketplace.js";
 
 export interface PredictFixture {
   id: string;
@@ -197,13 +198,32 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
     config.prompt,
     `Respond with ONLY a JSON object, no markdown: {"homeScore": <int>=0>, "awayScore": <int>=0>, "confidence": <0..1>, "rationale": "<one or two sentences>"}.`,
   ].join("\n\n");
+  // Opt-in (USE_MARKETPLACE=1): buy real research from the Circle Agent Marketplace (x402 nanopayment
+  // on Base) and feed it to the model as premium evidence. Never blocks a prediction — skips on any error.
+  let marketplaceBlock = "";
+  if (process.env.USE_MARKETPLACE === "1") {
+    try {
+      const r = await fetchMarketplaceResearch(
+        `${fixture.home} vs ${fixture.away} football match preview: recent form, key injuries, head-to-head, likely scoreline. World Cup 2026.`,
+      );
+      if (r.ok && r.text) {
+        marketplaceBlock = `Premium research you bought from the Circle Agent Marketplace (x402 nanopayment on ${r.chain}):\n${r.text}`;
+      }
+    } catch {
+      /* marketplace is best-effort; never block the prediction */
+    }
+  }
+
   const user = [
     `Fixture: ${fixture.home} (home) vs ${fixture.away} (away).`,
     Object.keys(evidence).length
       ? `Evidence you bought:\n${JSON.stringify(evidence, null, 2)}`
       : `You chose to buy no evidence. Predict from your prior.`,
+    marketplaceBlock,
     `Predict the exact final score.`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const prediction = parsePrediction(await callModel(system, user));
   const hash = predictionHash(agentId, fixture.id, prediction);
