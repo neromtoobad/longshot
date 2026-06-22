@@ -29,6 +29,7 @@
     "seed:onchain": "tsx --env-file=../.env scripts/seed-onchain.ts",
     "live:predict": "tsx --env-file=../.env scripts/live-predict.ts",
     "dcw:buy": "tsx --env-file=../.env scripts/dcw-buy.ts",
-    "seed:finalize": "tsx --env-file=../.env scripts/seed-finalize.ts"
+    "seed:finalize": "tsx --env-file=../.env scripts/seed-finalize.ts",
+    "market:research": "tsx --env-file=../.env scripts/marketplace-research.ts"
   }
 }
