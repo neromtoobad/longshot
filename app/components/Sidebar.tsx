@@ -19,6 +19,7 @@ const NAV: { href: string; label: string; icon: ReactNode }[] = [
   { href: "/stats", label: "Stats", icon: <Icon d="M3 12h4l3 8 4-16 3 8h4" /> },
   { href: "/market", label: "Market", icon: <Icon d="M5 8h14l-1 12H6L5 8zM9 8a3 3 0 0 1 6 0" /> },
   { href: "/build", label: "Build", icon: <Icon d="M12 5v14M5 12h14" /> },
+  { href: "/me", label: "My Agents", icon: <Icon d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0" /> },
 ];
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

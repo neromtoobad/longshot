@@ -1,7 +1,7 @@
 // Server data module: joins the runtime store (agents, predictions, purchases, fixtures) with
 // on-chain state + scoring into the views the pages render. Read-only, server-only.
 
-import type { Fixture } from "@longshot/shared";
+import type { EvidenceSource, Fixture } from "@longshot/shared";
 import { buildLeaderboard, buildScoreRows, scorePrediction, type ScoredEntry } from "@longshot/shared";
 import { allFixtures } from "./fixtures-store";
 import { readAgents, readPredictions, readPurchases, readSettlements, type StoredAgent } from "./store";
@@ -183,6 +183,67 @@ export function getBrokerNetwork(poolId: string) {
     catalog: catalog.sources, // {source, basePriceUSDC, markupUSDC, brokerPriceUSDC, reputation}
     revenue, // {totalSales, totalRevenueUSDC, totalPassthroughUSDC, bySource, paymentChainDepth}
   };
+}
+
+export interface MyAgent {
+  agentId: string;
+  name: string;
+  avatar?: { style: string; seed: string };
+  onChainAgentId?: string;
+  riskAppetite: string;
+  preferBroker: boolean;
+  budgetUSDC: string; // base units
+  willingnessToPay: Partial<Record<EvidenceSource, string>>;
+  persona: string;
+  prompt: string;
+  score: number;
+  fixturesScored: number;
+  predictions: number;
+  spent: string; // base units
+  roi: number;
+  provisioned: boolean; // has a runnable data wallet
+}
+
+/** The connected owner's agents with live progress + their editable strategy (for the My Agents page). */
+export function getMyAgents(owner: string, poolId = "1"): MyAgent[] {
+  const lower = owner.toLowerCase();
+  const agents = readAgents().filter((a) => a.poolId === poolId && (a.owner || "").toLowerCase() === lower);
+  const finals = finalFixtureMap(poolId);
+  const preds = readPredictions().filter((p) => p.poolId === poolId);
+  const purchases = readPurchases();
+
+  return agents.map((a) => {
+    const mine = preds.filter((p) => p.agentId === a.agentId);
+    let score = 0;
+    let scored = 0;
+    for (const p of mine) {
+      const f = finals.get(p.fixtureId);
+      if (f) {
+        score += scorePrediction({ homeScore: p.homeScore, awayScore: p.awayScore }, { homeScore: f.homeScore!, awayScore: f.awayScore! });
+        scored += 1;
+      }
+    }
+    const spent = purchases.filter((p) => p.agentId === a.agentId).reduce((s, p) => s + BigInt(p.priceUSDC), 0n);
+    const roi = spent > 0n ? score / (Number(spent) / 1_000_000) : score > 0 ? Infinity : 0;
+    return {
+      agentId: a.agentId,
+      name: a.template.name,
+      avatar: a.avatar,
+      onChainAgentId: a.onChainAgentId,
+      riskAppetite: a.template.riskAppetite,
+      preferBroker: a.template.dataPreference.preferBroker,
+      budgetUSDC: a.template.budget,
+      willingnessToPay: a.template.dataPreference.willingnessToPay,
+      persona: a.template.persona,
+      prompt: a.template.prompt,
+      score,
+      fixturesScored: scored,
+      predictions: mine.length,
+      spent: spent.toString(),
+      roi,
+      provisioned: Boolean(a.walletAddress),
+    };
+  });
 }
 
 export interface SettlementTrace {

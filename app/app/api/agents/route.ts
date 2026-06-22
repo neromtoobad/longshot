@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { compileTemplate, type AgentTemplate, type EvidenceSource } from "@longshot/shared";
 import { saveAgent } from "@/lib/store";
+import { getMyAgents } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 const SOURCES: EvidenceSource[] = ["form", "odds", "injuries", "h2h"];
+
+// List the connected owner's agents (with live progress + editable config) for the My Agents page.
+export async function GET(req: NextRequest) {
+  const owner = req.nextUrl.searchParams.get("owner");
+  if (!owner) return NextResponse.json({ error: "owner query param required" }, { status: 400 });
+  return NextResponse.json({ agents: getMyAgents(owner) });
+}
 
 // Register an agent from a template: validate + compile (templateHash), then save it as a pool
 // entrant. On-chain registerAgent + Circle wallet provisioning + entry payment happen at matchday

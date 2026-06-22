@@ -97,3 +97,49 @@ export function saveAgent(agent: Omit<StoredAgent, "agentId"> & { agentId?: stri
   write("agents.json", [...agents.filter((a) => a.agentId !== agentId), record]);
   return record;
 }
+
+export interface AgentPatch {
+  name?: string;
+  persona?: string;
+  prompt?: string;
+  riskAppetite?: string;
+  preferBroker?: boolean;
+  budget?: string; // USDC base units
+  willingnessToPay?: Partial<Record<EvidenceSource, string>>;
+  avatar?: { style: string; seed: string };
+}
+
+/**
+ * Edit an existing agent's strategy. Owner-gated: only succeeds when `owner` matches the stored
+ * owner (case-insensitive). Returns the updated record, or null on not-found / wrong owner. The
+ * on-chain registration (templateHash) is the original commitment; this tunes the off-chain config
+ * the runtime uses.
+ */
+export function updateAgent(agentId: string, owner: string, patch: AgentPatch): StoredAgent | null {
+  const agents = readAgents();
+  const idx = agents.findIndex((a) => a.agentId === agentId);
+  if (idx < 0) return null;
+  const a = agents[idx];
+  if (!a.owner || a.owner.toLowerCase() !== owner.toLowerCase()) return null;
+
+  const t = a.template;
+  const updated: StoredAgent = {
+    ...a,
+    avatar: patch.avatar ?? a.avatar,
+    template: {
+      ...t,
+      name: patch.name?.trim() || t.name,
+      persona: patch.persona ?? t.persona,
+      prompt: patch.prompt ?? t.prompt,
+      riskAppetite: patch.riskAppetite ?? t.riskAppetite,
+      budget: patch.budget ?? t.budget,
+      dataPreference: {
+        preferBroker: patch.preferBroker ?? t.dataPreference.preferBroker,
+        willingnessToPay: patch.willingnessToPay ?? t.dataPreference.willingnessToPay,
+      },
+    },
+  };
+  agents[idx] = updated;
+  write("agents.json", agents);
+  return updated;
+}
