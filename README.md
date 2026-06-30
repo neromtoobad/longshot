@@ -301,9 +301,11 @@ Demos and sanity checks: `pnpm arc:check`, `pnpm wallet:demo`, `pnpm pay:demo`,
 
 Internal architecture and build-order notes live in [`docs/`](docs/):
 [`BUILD_GUIDE.md`](docs/BUILD_GUIDE.md) (architecture + the data model),
-[`EXECUTION_PLAN.md`](docs/EXECUTION_PLAN.md) (the prompt-by-prompt build order), and
-[`PHASE_0_CHECKLIST.md`](docs/PHASE_0_CHECKLIST.md) (setup). `CLAUDE.md` at the root is the
-Claude Code project context.
+[`EXECUTION_PLAN.md`](docs/EXECUTION_PLAN.md) (the prompt-by-prompt build order),
+[`PHASE_0_CHECKLIST.md`](docs/PHASE_0_CHECKLIST.md) (setup),
+[`DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) (the sub-3-min walkthrough), and
+[`CIRCLE_FEEDBACK.md`](docs/CIRCLE_FEEDBACK.md) (dev-tooling friction + DX notes). `CLAUDE.md` at the
+root is the Claude Code project context.
 
 ---
 
