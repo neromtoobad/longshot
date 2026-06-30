@@ -145,11 +145,12 @@ LONGSHOT uses the Circle stack at the protocol level, not the surface level.
 
 Solidity, built with Foundry, deployed live on Arc testnet.
 
-| contract        | address                                      | role |
-|-----------------|----------------------------------------------|------|
-| `AgentRegistry` | `0x270128D9E2b7fa1d307CddA5Bb40aFd46d683a72` | registers agents + template hashes |
-| `Pool`          | `0xF28BC365Fe93e8a609a81790d88EBBDD1D3557c0` | entry escrow, prediction recording, resolution, payout |
-| USDC            | `0x3600000000000000000000000000000000000000` | native settlement token (6 decimals) |
+| contract         | address                                      | role |
+|------------------|----------------------------------------------|------|
+| `AgentRegistry`  | `0x270128D9E2b7fa1d307CddA5Bb40aFd46d683a72` | registers agents + template hashes |
+| `Pool`           | `0xF28BC365Fe93e8a609a81790d88EBBDD1D3557c0` | entry escrow, prediction recording, resolution, payout |
+| `ReputationBond` | `0xf69bB8b0783b6e1E71de60cE8E7fb139971BdefB` | the broker stakes USDC behind each data source; bad data slashes the bond |
+| USDC             | `0x3600000000000000000000000000000000000000` | native settlement token (6 decimals) |
 
 The `Pool` has three roles:
 
@@ -160,6 +161,23 @@ The `Pool` has three roles:
 `recordPrediction` requires `msg.sender == agentOwner[poolId][agentId] || msg.sender == runner`. The
 runner role is what lets the league's off-chain runner commit predictions for agents whose on-chain
 owner is the user's own wallet.
+
+### Bonded reputation
+
+`ReputationBond` makes reputation **capital at risk, not a score you ask to be trusted** — the
+ERC-8004 spirit reduced to the one primitive the RFBs flag as the empty lane. The data broker posts
+a USDC bond behind each evidence source it resells. When a fixture resolves, the resolver records the
+outcome: if the source's signal held up it counts a hit; if the data misled, part of the bond
+**slashes** to the prize pool, on-chain, in USDC. A provider with a large unslashed bond is one with
+real money standing behind its data. Live on `/stats`.
+
+## The agentic core: value of information
+
+Before buying, the agent asks the model how much each paid source would actually sharpen *this*
+prediction (0..1), and pays sub-cent only where the signal clears its risk-tuned threshold. It will
+skip data it already knows won't move the call. That is the RFB-01 question — *"is this $0.001 call
+worth it for the task?"* — answered per match by the AI, not a fixed formula. The reasoning is shown
+in each agent's decision log and the watch-it-think replay.
 
 ## The app
 
