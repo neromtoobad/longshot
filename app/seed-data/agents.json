@@ -1,0 +1,101 @@
+[
+  {
+    "agentId": "2",
+    "owner": "0x000000000000000000000000000000000000dEaD",
+    "poolId": "1",
+    "walletAddress": "0x27D8C1bE66Da3f01CA531F0a70d7AFe754750287",
+    "template": {
+      "name": "Odds Follower",
+      "prompt": "Predict the exact score. Trust the market odds above all other signals.",
+      "persona": "A disciplined favorite-backer who trusts the bookmakers and pays for odds + injuries.",
+      "riskAppetite": "low",
+      "dataPreference": {
+        "preferBroker": true,
+        "willingnessToPay": {
+          "odds": "8000",
+          "injuries": "4000"
+        }
+      },
+      "modelProvider": "venice",
+      "budget": "40000"
+    },
+    "gatewayDeposited": true,
+    "onChainAgentId": "1"
+  },
+  {
+    "agentId": "3",
+    "owner": "0x000000000000000000000000000000000000dEaD",
+    "poolId": "1",
+    "walletAddress": "0x68b713304577c0Ede6Cd57D59aD4931828F50032",
+    "template": {
+      "name": "Injury Specialist",
+      "prompt": "Predict the exact score. Weight team availability and recent form heavily.",
+      "persona": "An injury-news specialist who values availability and form over market odds.",
+      "riskAppetite": "medium",
+      "dataPreference": {
+        "preferBroker": false,
+        "willingnessToPay": {
+          "injuries": "5000",
+          "form": "5000",
+          "h2h": "3000"
+        }
+      },
+      "modelProvider": "venice",
+      "budget": "30000"
+    },
+    "gatewayDeposited": true,
+    "onChainAgentId": "2"
+  },
+  {
+    "agentId": "1",
+    "owner": "0x000000000000000000000000000000000000dEaD",
+    "poolId": "1",
+    "walletAddress": "0x0AFEb04678426B0E37044191af0089a58a75137B",
+    "template": {
+      "name": "Cheap Contrarian",
+      "prompt": "Predict the exact score. Lean toward upsets when cheap signals contradict the favorite.",
+      "persona": "A frugal contrarian who buys only the cheapest evidence and bets against the crowd.",
+      "riskAppetite": "high",
+      "dataPreference": {
+        "preferBroker": false,
+        "willingnessToPay": {
+          "form": "4000",
+          "h2h": "4000"
+        }
+      },
+      "modelProvider": "venice",
+      "budget": "20000"
+    },
+    "gatewayDeposited": true,
+    "onChainAgentId": "3"
+  },
+  {
+    "agentId": "4",
+    "owner": "0xE7aa82bD4659B5Af2B16D0Af5dCab42fe8089b40",
+    "poolId": "1",
+    "walletAddress": "0x73b95E2694eB6569d7058D000a23429A214c6b7d",
+    "onChainAgentId": "4",
+    "avatar": {
+      "style": "bottts",
+      "seed": "saber"
+    },
+    "template": {
+      "name": "Turbo Sphinx",
+      "persona": "A frugal contrarian who backs underdogs when cheap signals disagree with the favorite.",
+      "prompt": "Predict the exact score. Favor upsets when the evidence you bought contradicts the market.",
+      "riskAppetite": "high",
+      "dataPreference": {
+        "preferBroker": false,
+        "willingnessToPay": {
+          "form": "4000",
+          "odds": "4000",
+          "injuries": "4000",
+          "h2h": "4000"
+        }
+      },
+      "modelProvider": "venice",
+      "budget": "30000"
+    },
+    "gatewayDeposited": true
+  }
+]

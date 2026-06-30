@@ -1,0 +1,807 @@
+[
+  {
+    "agentId": "2",
+    "fixtureId": "760443",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.75,
+    "rationale": "Türkiye has stronger market odds and home advantage, making a narrow win likely. Paraguay's lower-ranked squad struggles away from home, but can score against weaker defenses.",
+    "predictionHash": "0x6e5822056a0e21f09bdc687702da3d6c3b037c3fb8c8526219edef701e698e51",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-20T02:29:33.502Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760447",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.75,
+    "rationale": "The market odds favor the Netherlands as home favorites with slightly better form and squad depth. Sweden tends to be resilient but may lack the firepower to overcome a strong Dutch side.",
+    "predictionHash": "0x08346e17c53f1ae80764585b362eaf50c2ec15a331d2cd7fd18eb678dfe13958",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-20T02:29:40.984Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760448",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.65,
+    "rationale": "Germany is favored by market odds and historical performance, but Ivory Coast poses a moderate threat; a narrow home win is the most probable outcome.",
+    "predictionHash": "0x6659d10475bb413e54078fb2620e2f58d2d4b92c623db48e6010a295458fbf31",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-20T02:29:47.535Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760446",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.65,
+    "rationale": "Ecuador is favored by market odds as a stronger home side, while Curaçao is a lower-ranked team; a narrow home win aligns with implied probability and historical performance trends.",
+    "predictionHash": "0xcd616d8096a127bacc438a3cc8fbf993ad91b47012156d6934a956f3f5e7b473",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-20T02:30:00.525Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760449",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 1,
+    "confidence": 0.65,
+    "rationale": "The market odds suggest a closely contested match with both teams having similar chances; a draw is the most probable outcome based on prior performance and bookmaker expectations.",
+    "predictionHash": "0xcc6f83dffef89308d3613022369bf4cc0a4f89bbed81cd830e581874b93ff234",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-20T02:30:14.986Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760443",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.75,
+    "rationale": "Türkiye has home advantage and better recent form despite injuries, while Paraguay has inconsistent results and two doubtful starters. Historical head-to-head favors Türkiye, supporting a narrow home win.",
+    "predictionHash": "0x6ca3405c75e74095779250dc0ec97a92aa821948d8f067b2831041615e254e55",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "6a89276a-1e84-4002-bc62-b55b667107d7"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "70f93e43-ba38-4195-9390-a1b393114077"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "1e00859a-f717-47da-b415-a7923a77cb29"
+      }
+    ],
+    "createdAt": "2026-06-20T02:30:30.288Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760447",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 0,
+    "confidence": 0.75,
+    "rationale": "Netherlands has key players out and poor recent form, but Sweden is also struggling away with no wins in last five; home advantage and slight edge in goals scored lifts Netherlands to narrow victory.",
+    "predictionHash": "0x33d3d860963e1f6e0b0402f4cf027c4da4ee07f1cae60a727f31762a71dc8709",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "9cd98dc8-92ca-4c2c-8045-0a2ab6ade3e8"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "9bfcac95-170a-433a-a8eb-25eced862df1"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "0875b48d-14e5-49aa-983e-f09ef0c45f7c"
+      }
+    ],
+    "createdAt": "2026-06-20T02:30:42.505Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760448",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 1,
+    "confidence": 0.65,
+    "rationale": "Germany's poor form and key absences are offset by home advantage, while Ivory Coast show resilience despite injuries; both teams likely to score but lack sharpness for a high-scoring game.",
+    "predictionHash": "0xf3b14e276ee70c0ea92cb3188688e01a81a96185724949b20829156f3a667f22",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "68e57b63-f91b-4a60-9f0c-c22936d57935"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "375cf1d0-2bf6-46b8-aa96-a604a7f2d79c"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "9d83d175-43b3-44df-b57f-1239f2fece76"
+      }
+    ],
+    "createdAt": "2026-06-20T02:30:55.866Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760446",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.75,
+    "rationale": "Ecuador has home advantage and slightly better form despite injury concerns, while Curaçao has been inconsistent and failed to win in their last five matches.",
+    "predictionHash": "0xa0939e947f4a1ebd66126e4aac096e65c45ece7239cdd674e71fd1b864795c5c",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "cfaea892-f293-4bc1-969d-2a01a60249bf"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "be0031ad-ff75-4f31-b2ca-884965f3fe28"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "c6b06dc6-6793-4523-b436-224029e6a579"
+      }
+    ],
+    "createdAt": "2026-06-20T02:31:14.945Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760449",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 1,
+    "confidence": 0.75,
+    "rationale": "Tunisia has full availability with no injuries, giving them a slight edge at home. Japan is missing one key player and has two others doubtful, impacting their form and depth, leading to a closely contested draw.",
+    "predictionHash": "0xd83b73b85593835f4179439647af718bf7535601a4710703dc1f062aa0e4c4e5",
+    "spent": "2000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "faf8b0c7-560c-4171-aabc-ecc0081b8332"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "price 0.003 over remaining budget 0"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      }
+    ],
+    "createdAt": "2026-06-20T02:31:29.218Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760443",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 0,
+    "confidence": 0.65,
+    "rationale": "Türkiye has a strong historical advantage with 2 wins in 5 meetings and no losses, while Paraguay's poor away form and recent losses suggest an upset lean is unwarranted despite minimal goal expectations.",
+    "predictionHash": "0x66c90a974011ad466fe14c1b6fde3394f694d6f498175c55b3a408e631de144a",
+    "spent": "5000",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "d72f9467-3587-4abc-bfed-1a21898a0bb1"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "18e4d814-0f5d-42a1-a212-60b462985dbc"
+      }
+    ],
+    "createdAt": "2026-06-20T02:31:44.901Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760447",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 0,
+    "confidence": 0.65,
+    "rationale": "Netherlands has slight edge in head-to-head and better home form despite recent losses; Sweden's poor away form and losing streak make an upset unlikely, but low confidence due to both teams' weak recent performances.",
+    "predictionHash": "0x36677c3eb04a2a5b4e77130f4c650908effec349bfd48f71b0564592fa2ee26f",
+    "spent": "5000",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "01f166ea-71d7-4b7a-90e8-575552261776"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "c4decf53-6eac-4929-b8c4-fe6b166d8acc"
+      }
+    ],
+    "createdAt": "2026-06-20T02:32:02.290Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760448",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 2,
+    "confidence": 0.35,
+    "rationale": "Ivory Coast is a cheaper bet despite Germany's home advantage; recent form shows both teams struggling, but Ivory Coast's slightly better attack and contrarian value pushes lean toward upset.",
+    "predictionHash": "0x23da884dced7c747cfe4e68d3142168608a56a909472deaad91bd7b98dbb5fe7",
+    "spent": "5000",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "74d290fb-e6de-48f2-8b68-7c278260a99a"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "1afc5175-1e0a-4cab-8f24-8c62c95d7f3f"
+      }
+    ],
+    "createdAt": "2026-06-20T02:32:47.802Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760446",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 1,
+    "confidence": 0.65,
+    "rationale": "H2H shows no decisive edge with only one draw in eight meetings, and both teams' poor form suggests defensive fragility; lean toward low-scoring draw as cheap signals undercut Ecuador's home favoritism.",
+    "predictionHash": "0x227cc08f21416e89cb90691a88cf63b7bc93f1c18bed89b3190fe1c3c3838ca7",
+    "spent": "5000",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "16b109ec-3c5d-417d-bc39-04ee89dd4932"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "cc88a91b-4764-4d76-8884-5d74e795ce2b"
+      }
+    ],
+    "createdAt": "2026-06-20T02:33:00.576Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760449",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 0,
+    "confidence": 0.4,
+    "rationale": "Tunisia has a slight home advantage and Japan often underperforms as favorite; minimal evidence suggests an upset is plausible but not certain.",
+    "predictionHash": "0x27e7355aed6bdd9230716967a3c74ffa4785f1ca007d1cbbea7bd3d1c2e96c0c",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "price 0.003 over remaining budget 0"
+      }
+    ],
+    "createdAt": "2026-06-20T02:33:08.655Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760461",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 0,
+    "confidence": 0.85,
+    "rationale": "Portugal's strong home advantage and superior squad depth are reflected in the market odds, which favor a comfortable win. Uzbekistan, while improving, lacks the quality to challenge top-tier European sides away from home.",
+    "predictionHash": "0xa830671638666d75c637071fec5af1cc49b2223709b9803b47b10f2ed4df846b",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-23T13:55:37.969Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760458",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 0,
+    "confidence": 0.75,
+    "rationale": "England are strong favorites at home with superior squad depth; market odds favor a comfortable win. Ghana's inconsistent form and limited attacking threat reduce likelihood of a close scoreline.",
+    "predictionHash": "0xf8ddb2dd977b9a705058248ea063f9b29e27b1ec22085f7d461e44c9046fee76",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "value/price 1.67 below low threshold 2"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "value/price 1.33 below low threshold 2"
+      }
+    ],
+    "createdAt": "2026-06-23T13:56:11.321Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760461",
+    "poolId": "1",
+    "homeScore": 3,
+    "awayScore": 0,
+    "confidence": 0.85,
+    "rationale": "Portugal has strong home form and full squad availability, while Uzbekistan lacks competitive experience at this level. The gulf in class and depth favors a comfortable home win.",
+    "predictionHash": "0xff2986b0ff4f5e7afb43031d155b86866f1a9bba9cbef585c959440c9d4fb210",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "price 0.003 over remaining budget 0"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      }
+    ],
+    "createdAt": "2026-06-23T13:56:34.652Z"
+  },
+  {
+    "agentId": "3",
+    "fixtureId": "760458",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 0,
+    "confidence": 0.75,
+    "rationale": "England's strong home form and squad depth outweigh Ghana's inconsistent recent performances and limited attacking threat.",
+    "predictionHash": "0x73cb18fb5e1a24b3f3d27c424ff4fc1766e9f8330588509eb9f87b9ddd946daf",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 2.5,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.005",
+        "valuePerDollar": 1.67,
+        "decision": "skip",
+        "reason": "price 0.003 over remaining budget 0"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.003",
+        "valuePerDollar": 1.5,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      }
+    ],
+    "createdAt": "2026-06-23T13:57:39.190Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760461",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 0,
+    "confidence": 0.6,
+    "rationale": "Portugal is heavily favored due to superior squad depth and international experience, while Uzbekistan lacks top-tier competitive exposure. A home win is likely, but not a landslide given no evidence of form or lineup changes.",
+    "predictionHash": "0x3cda548ff9ffffc662251880690eeb748b2c9d9319a54344653d3bea494b83a1",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "price 0.003 over remaining budget 0"
+      }
+    ],
+    "createdAt": "2026-06-23T13:58:31.524Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760458",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 0,
+    "confidence": 0.55,
+    "rationale": "England has a slight historical edge and home advantage, but Ghana's resilience in past encounters suggests a tight match; defaulting to a narrow home win with minimal evidence.",
+    "predictionHash": "0xc9107ac5302f885d29ee1c6eab7c10b7b546c1c9b05b072e86bdb5dace7cf7d4",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "skip",
+        "reason": "price 0.002 over remaining budget 0"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "skip",
+        "reason": "price 0.003 over remaining budget 0"
+      }
+    ],
+    "createdAt": "2026-06-23T13:59:16.689Z"
+  },
+  {
+    "agentId": "4",
+    "fixtureId": "760461",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 2,
+    "confidence": 0.75,
+    "rationale": "Uzbekistan's superior recent form and Portugal's injury concerns favor an upset; historical data shows close rivalry, increasing underdog appeal.",
+    "predictionHash": "0xb7884c9233e800c68bd817538f9c13accca9a53d0563452d22e4140a5c74268d",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "919518f3-374f-4c58-b111-68ef5e6999cd"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "b370af11-e950-4af7-b92c-cd957c60fb52"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "8f7b9981-b639-4271-b14e-8f88596a1008"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.005",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 0.8,
+        "decision": "skip",
+        "reason": "price 0.005 over willingness 0.004"
+      }
+    ],
+    "createdAt": "2026-06-23T13:59:56.950Z"
+  },
+  {
+    "agentId": "4",
+    "fixtureId": "760458",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 2,
+    "confidence": 0.68,
+    "rationale": "Ghana is fully fit and on superior recent form with four wins in five, while England has key injuries despite better historical form; the market underestimates the underdog's cohesion.",
+    "predictionHash": "0x01de3fbacf85bd279999c7463dc7b51fef84c5e9fb254a3e77cb6bd35a801463",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "3673584c-e67f-4d96-b311-16e5cc77cd53"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 2,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "8c69a0bb-0d07-4782-a1a0-cedc06b48c49"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 1.33,
+        "decision": "buy",
+        "reason": "value clears threshold, within budget",
+        "settlementUuid": "b40b36f1-4b32-4b60-844d-807467f199ec"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.005",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 0.8,
+        "decision": "skip",
+        "reason": "price 0.005 over willingness 0.004"
+      }
+    ],
+    "createdAt": "2026-06-23T14:00:44.418Z"
+  }
+]

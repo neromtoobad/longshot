@@ -3,14 +3,10 @@
 // price through to the source — a 2-hop agent-to-agent payment chain. Tracks per-source reputation
 // (hit rate of served data vs outcomes) and broker revenue, both surfaced for /stats.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type { EvidenceSource } from "@longshot/shared";
 import { EVIDENCE_PRICES, priceToAtomic } from "./x402";
 import { formEvidence, oddsEvidence, injuriesEvidence, h2hEvidence } from "./evidence";
-
-const DATA_DIR = resolve(process.cwd(), process.env.LONGSHOT_DATA_DIR ?? ".data");
-const REVENUE_FILE = resolve(DATA_DIR, "broker.json");
+import { readData, writeData } from "./datadir";
 
 export const SOURCES: EvidenceSource[] = ["form", "odds", "injuries", "h2h"];
 
@@ -76,10 +72,9 @@ interface Rev {
   revenueAtomic: number; // markup, kept by the broker
 }
 
-// File-backed so /stats reads real broker revenue across server restarts.
+// File-backed so /stats reads real broker revenue across server restarts (seed snapshot on serverless).
 function loadRevenue(): Record<string, Rev> {
-  if (!existsSync(REVENUE_FILE)) return {};
-  return JSON.parse(readFileSync(REVENUE_FILE, "utf-8")) as Record<string, Rev>;
+  return readData<Record<string, Rev>>("broker.json", {});
 }
 
 export function recordBrokerSale(source: EvidenceSource, baseAtomic: number, markupAtomic: number): void {
@@ -89,8 +84,7 @@ export function recordBrokerSale(source: EvidenceSource, baseAtomic: number, mar
   r.passthroughAtomic += baseAtomic;
   r.revenueAtomic += markupAtomic;
   all[source] = r;
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(REVENUE_FILE, JSON.stringify(all, null, 2));
+  writeData("broker.json", all);
 }
 
 export function brokerRevenue() {

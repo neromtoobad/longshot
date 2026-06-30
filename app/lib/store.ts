@@ -1,22 +1,8 @@
 // App-side access to the shared runtime store (written by fixtures:sync + the agent runner, and by
 // the register flow). Shares LONGSHOT_DATA_DIR with the agent.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type { Bytes32, EvidenceSource, Purchase } from "@longshot/shared";
-
-const DATA_DIR = resolve(process.cwd(), process.env.LONGSHOT_DATA_DIR ?? ".data");
-
-function read<T>(file: string, fallback: T): T {
-  const path = resolve(DATA_DIR, file);
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf-8")) as T;
-}
-
-function write(file: string, value: unknown): void {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(resolve(DATA_DIR, file), JSON.stringify(value, null, 2));
-}
+import { readData as read, writeData as write } from "./datadir";
 
 export interface StoredAgent {
   agentId: string;
