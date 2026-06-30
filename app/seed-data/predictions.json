@@ -803,5 +803,207 @@
       }
     ],
     "createdAt": "2026-06-23T14:00:44.418Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760492",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.56,
+    "rationale": "The market odds favor France as home favorites with a 56% implied probability, suggesting a narrow victory. A 2-1 scoreline aligns with both the implied probability and typical home advantage in international fixtures.",
+    "predictionHash": "0x311402d905222657abed56ce4d95ba3ad0c567c14bf497cf246c8ae326dc3254",
+    "spent": "6000",
+    "decisions": [
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 133.33,
+        "estimatedValue": 0.8,
+        "decision": "buy",
+        "reason": "worth it for this match: odds are highly predictive and cheapest available decisive signal for market-backed score forecast",
+        "settlementUuid": "c4a8b54c-7a87-4e57-920d-2da642fe5bd3"
+      },
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 125,
+        "estimatedValue": 0.3,
+        "decision": "skip",
+        "reason": "model values it 0.30 for this match (<0.6): injuries less critical here; Sweden's absences unlikely to shift odds significantly given France's strength and home advantage"
+      }
+    ],
+    "createdAt": "2026-06-30T17:48:21.759Z"
+  },
+  {
+    "agentId": "2",
+    "fixtureId": "760491",
+    "poolId": "1",
+    "homeScore": 2,
+    "awayScore": 1,
+    "confidence": 0.55,
+    "rationale": "The market odds favor Mexico as home favorites with a 55% implied probability, suggesting a narrow victory. A 2-1 scoreline aligns with the expected goal output and home advantage.",
+    "predictionHash": "0xd4ecfde3d358ba9b44b42e9991e55f171e98b770147075f9785d9baaba5e1622",
+    "spent": "6000",
+    "decisions": [
+      {
+        "source": "odds",
+        "priceUSDC": "0.006",
+        "willingnessToPayUSDC": "0.008",
+        "valuePerDollar": 158.33,
+        "estimatedValue": 0.95,
+        "decision": "buy",
+        "reason": "worth it for this match: Odds are the primary signal for a disciplined favorite-backer; they reflect market consensus on score probabilities and are highly predictive for this match.",
+        "settlementUuid": "f7161c9b-f344-40ca-836a-89cbf104ece9"
+      },
+      {
+        "source": "injuries",
+        "priceUSDC": "0.0024",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 62.5,
+        "estimatedValue": 0.15,
+        "decision": "skip",
+        "reason": "model values it 0.15 for this match (<0.6): Injuries data has minimal impact here; both teams are expected to field near-full strength squads, and any absences are already priced into the odds."
+      }
+    ],
+    "createdAt": "2026-06-30T17:48:43.301Z"
+  },
+  {
+    "agentId": "1",
+    "fixtureId": "760492",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 0,
+    "confidence": 0.3,
+    "rationale": "Lean toward home upset with minimal evidence; France slight favorite but low confidence due to lack of data.",
+    "predictionHash": "0xe319f6f4efb8bf70134ecdcbb753091dcc9a55d95f7d9ba353fa9967442ef944",
+    "spent": "0",
+    "decisions": [
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 33.33,
+        "estimatedValue": 0.1,
+        "decision": "skip",
+        "reason": "model values it 0.10 for this match (<0.3): Cheap signal; may reveal if France's recent performance dips contradict favorite status"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 25,
+        "estimatedValue": 0.05,
+        "decision": "skip",
+        "reason": "model values it 0.05 for this match (<0.3): Very cheap; could show Sweden overperforming France historically, supporting upset lean"
+      }
+    ],
+    "createdAt": "2026-06-30T17:49:18.006Z"
+  },
+  {
+    "agentId": "4",
+    "fixtureId": "760492",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 2,
+    "confidence": 0.68,
+    "rationale": "Sweden's higher injury count weakens their squad, but France's single doubtful player creates uncertainty; betting against the favorite when odds favor France offers value on an upset.",
+    "predictionHash": "0xb61e05e59523bd1a01d5023a31250777a431cb16a80cde871cf23d695eb98929",
+    "spent": "2000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 300,
+        "estimatedValue": 0.6,
+        "decision": "buy",
+        "reason": "worth it for this match: A key French injury could justify a cheap upset play; high impact per dollar if主力缺阵.",
+        "settlementUuid": "62df9295-dffe-4358-b48a-1cdbd88bc224"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 100,
+        "estimatedValue": 0.2,
+        "decision": "skip",
+        "reason": "model values it 0.20 for this match (<0.3): Sweden has surprised France before; at this price, even a small edge in historical resilience is worth buying."
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 33.33,
+        "estimatedValue": 0.1,
+        "decision": "skip",
+        "reason": "model values it 0.10 for this match (<0.3): France's recent form is strong but expected; doesn't shift upset probability significantly."
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.005",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 10,
+        "estimatedValue": 0.05,
+        "decision": "skip",
+        "reason": "price 0.005 over willingness 0.004"
+      }
+    ],
+    "createdAt": "2026-06-30T17:49:40.809Z"
+  },
+  {
+    "agentId": "4",
+    "fixtureId": "760491",
+    "poolId": "1",
+    "homeScore": 1,
+    "awayScore": 2,
+    "confidence": 0.68,
+    "rationale": "Ecuador is favored by historical dominance (4 wins in 8 meetings) and despite equal injury setbacks, their form suggests resilience. Mexico's perfect recent record hides small sample size; Ecuador's draw and win indicate steadier performance, making a narrow away win likely.",
+    "predictionHash": "0x75cd1217180fe98bc3d83b1476162d516f9c50adcabadb17bf6021b09d9b5f05",
+    "spent": "7000",
+    "decisions": [
+      {
+        "source": "injuries",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 400,
+        "estimatedValue": 0.8,
+        "decision": "buy",
+        "reason": "worth it for this match: Key absences in Mexico could drastically shift balance at low cost",
+        "settlementUuid": "c7fa89d4-9d7b-4f1c-abb5-8a6830427452"
+      },
+      {
+        "source": "h2h",
+        "priceUSDC": "0.002",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 250,
+        "estimatedValue": 0.5,
+        "decision": "buy",
+        "reason": "worth it for this match: Cheap check if Ecuador historically disrupts Mexico despite venue",
+        "settlementUuid": "0eca2318-cb1c-47e1-9486-6a79523e1b97"
+      },
+      {
+        "source": "form",
+        "priceUSDC": "0.003",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 200,
+        "estimatedValue": 0.6,
+        "decision": "buy",
+        "reason": "worth it for this match: Recent form could reveal underdog momentum overlooked by market",
+        "settlementUuid": "01b7d16e-3176-498e-b964-e60101766811"
+      },
+      {
+        "source": "odds",
+        "priceUSDC": "0.005",
+        "willingnessToPayUSDC": "0.004",
+        "valuePerDollar": 20,
+        "estimatedValue": 0.1,
+        "decision": "skip",
+        "reason": "price 0.005 over willingness 0.004"
+      }
+    ],
+    "createdAt": "2026-06-30T17:50:00.599Z"
   }
 ]

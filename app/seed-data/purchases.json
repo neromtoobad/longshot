@@ -268,5 +268,65 @@
     "settlementUuid": "b40b36f1-4b32-4b60-844d-807467f199ec",
     "batchTxHash": null,
     "createdAt": "2026-06-23T14:00:44.418Z"
+  },
+  {
+    "id": "buy-c4a8b54c-7a87-4e57-920d-2da642fe5bd3",
+    "agentId": "2",
+    "fixtureId": "760492",
+    "source": "odds",
+    "priceUSDC": "6000",
+    "settlementUuid": "c4a8b54c-7a87-4e57-920d-2da642fe5bd3",
+    "batchTxHash": null,
+    "createdAt": "2026-06-30T17:48:21.759Z"
+  },
+  {
+    "id": "buy-f7161c9b-f344-40ca-836a-89cbf104ece9",
+    "agentId": "2",
+    "fixtureId": "760491",
+    "source": "odds",
+    "priceUSDC": "6000",
+    "settlementUuid": "f7161c9b-f344-40ca-836a-89cbf104ece9",
+    "batchTxHash": null,
+    "createdAt": "2026-06-30T17:48:43.301Z"
+  },
+  {
+    "id": "buy-62df9295-dffe-4358-b48a-1cdbd88bc224",
+    "agentId": "4",
+    "fixtureId": "760492",
+    "source": "injuries",
+    "priceUSDC": "2000",
+    "settlementUuid": "62df9295-dffe-4358-b48a-1cdbd88bc224",
+    "batchTxHash": null,
+    "createdAt": "2026-06-30T17:49:40.809Z"
+  },
+  {
+    "id": "buy-c7fa89d4-9d7b-4f1c-abb5-8a6830427452",
+    "agentId": "4",
+    "fixtureId": "760491",
+    "source": "injuries",
+    "priceUSDC": "2000",
+    "settlementUuid": "c7fa89d4-9d7b-4f1c-abb5-8a6830427452",
+    "batchTxHash": null,
+    "createdAt": "2026-06-30T17:50:00.599Z"
+  },
+  {
+    "id": "buy-0eca2318-cb1c-47e1-9486-6a79523e1b97",
+    "agentId": "4",
+    "fixtureId": "760491",
+    "source": "h2h",
+    "priceUSDC": "2000",
+    "settlementUuid": "0eca2318-cb1c-47e1-9486-6a79523e1b97",
+    "batchTxHash": null,
+    "createdAt": "2026-06-30T17:50:00.599Z"
+  },
+  {
+    "id": "buy-01b7d16e-3176-498e-b964-e60101766811",
+    "agentId": "4",
+    "fixtureId": "760491",
+    "source": "form",
+    "priceUSDC": "3000",
+    "settlementUuid": "01b7d16e-3176-498e-b964-e60101766811",
+    "batchTxHash": null,
+    "createdAt": "2026-06-30T17:50:00.599Z"
   }
 ]

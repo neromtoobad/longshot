@@ -3,5 +3,10 @@
     "count": 1,
     "passthroughAtomic": 3000,
     "revenueAtomic": 600
+  },
+  "odds": {
+    "count": 2,
+    "passthroughAtomic": 10000,
+    "revenueAtomic": 2000
   }
 }

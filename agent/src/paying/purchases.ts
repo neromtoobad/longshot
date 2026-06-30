@@ -15,8 +15,11 @@ export function recordPurchase(input: {
   settlementUuid: string | null;
   batchTxHash: `0x${string}` | null;
 }): Purchase {
+  // Stable, collision-free id: the settlement UUID is unique per x402 buy, so re-runs and
+  // reconstruction stay idempotent (savePurchases dedups by id). Sequential ids reset per process
+  // and collided with already-persisted records, silently dropping new buys.
   const purchase: Purchase = {
-    id: `purchase-${++counter}`,
+    id: input.settlementUuid ? `buy-${input.settlementUuid}` : `purchase-${input.agentId}-${input.fixtureId}-${input.source}-${++counter}`,
     agentId: input.agentId,
     fixtureId: input.fixtureId,
     source: input.source,

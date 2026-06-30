@@ -17,7 +17,7 @@
         }
       },
       "modelProvider": "venice",
-      "budget": "40000"
+      "budget": "50000"
     },
     "gatewayDeposited": true,
     "onChainAgentId": "1"
@@ -41,7 +41,7 @@
         }
       },
       "modelProvider": "venice",
-      "budget": "30000"
+      "budget": "60000"
     },
     "gatewayDeposited": true,
     "onChainAgentId": "2"
@@ -64,7 +64,7 @@
         }
       },
       "modelProvider": "venice",
-      "budget": "20000"
+      "budget": "50000"
     },
     "gatewayDeposited": true,
     "onChainAgentId": "3"
@@ -94,7 +94,7 @@
         }
       },
       "modelProvider": "venice",
-      "budget": "30000"
+      "budget": "50000"
     },
     "gatewayDeposited": true
   }
