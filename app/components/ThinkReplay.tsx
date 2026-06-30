@@ -11,6 +11,7 @@ interface Decision {
   decision: string;
   priceUSDC: string;
   reason: string;
+  estimatedValue?: number;
   settlementUuid?: string;
 }
 
@@ -59,13 +60,17 @@ export function ThinkReplay({
               <div className="flex items-baseline gap-2">
                 <span className={`mono w-12 font-semibold ${item.d.decision === "buy" ? "text-pos" : "text-ink3"}`}>{item.d.decision === "buy" ? "BUY" : "SKIP"}</span>
                 <span className="w-16 text-ink2">{item.d.source}</span>
-                {item.d.decision === "buy" ? (
-                  <span className="mono text-accent2">
-                    ${item.d.priceUSDC} · x402 settled{item.d.settlementUuid && !item.d.settlementUuid.startsWith("test-") ? ` ✓ ${item.d.settlementUuid.slice(0, 8)}` : ""}
+                {typeof item.d.estimatedValue === "number" && (
+                  <span className="mono shrink-0 rounded bg-line/60 px-1 text-[10px] text-ink2" title="model's value-of-information estimate for this match (0–1)">
+                    value {item.d.estimatedValue.toFixed(2)}
                   </span>
-                ) : (
-                  <span className="text-ink3">{item.d.reason}</span>
                 )}
+                {item.d.decision === "buy" && (
+                  <span className="mono shrink-0 text-accent2">
+                    ${item.d.priceUSDC} · x402{item.d.settlementUuid && !item.d.settlementUuid.startsWith("test-") ? ` ✓ ${item.d.settlementUuid.slice(0, 8)}` : " settled"}
+                  </span>
+                )}
+                <span className="text-ink3">{item.d.reason}</span>
               </div>
             ) : item.kind === "reason" ? (
               <div className="text-ink2">🧠 <span className="text-ink3">{rationale || "synthesizing the evidence…"}</span></div>

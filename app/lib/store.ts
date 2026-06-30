@@ -31,6 +31,8 @@ export interface EvidenceDecision {
   priceUSDC: string;
   willingnessToPayUSDC: string;
   valuePerDollar: number;
+  /** Model's per-match value-of-information estimate (0..1). Absent on the static fallback path. */
+  estimatedValue?: number;
   decision: "buy" | "skip";
   reason: string;
   settlementUuid?: string;

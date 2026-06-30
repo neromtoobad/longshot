@@ -33,10 +33,22 @@ export interface EvidenceDecision {
   priceUSDC: string;
   willingnessToPayUSDC: string;
   valuePerDollar: number;
+  /** Model's estimate (0..1) of how much this source would sharpen THIS prediction. Absent on the
+   *  static fallback path (no model key). This is the value-of-information judgment that makes the
+   *  buy decision an agent decision, not a fixed formula. */
+  estimatedValue?: number;
   decision: "buy" | "skip";
   reason: string;
   settlementUuid?: string;
 }
+
+/** Per-source plan the model returns before buying: how informative each source is for this match. */
+export interface EvidencePlanItem {
+  value: number; // 0..1
+  worth: boolean;
+  reason: string;
+}
+export type EvidencePlan = Partial<Record<EvidenceSource, EvidencePlanItem>>;
 
 export interface PredictResult {
   agentId: string;
@@ -61,6 +73,14 @@ export interface PredictDeps {
   buy?: (args: Parameters<typeof buyEvidence>[0]) => Promise<BuyEvidenceResult>;
   /** Call the model with system + user prompts, returning parsed JSON. */
   callModel?: (system: string, user: string) => Promise<unknown>;
+  /** Reason about the value of each evidence source for THIS fixture before buying. Returns null to
+   *  fall back to the static willingness-to-pay heuristic (default: ask the model when a key is set). */
+  planEvidence?: (args: {
+    fixture: PredictFixture;
+    config: AgentConfig;
+    candidates: { source: EvidenceSource; priceUSDC: string }[];
+    remainingUSDC: string;
+  }) => Promise<EvidencePlan | null>;
 }
 
 export interface PredictArgs {
@@ -75,8 +95,57 @@ export interface PredictArgs {
 }
 
 // Minimum value-per-dollar an agent demands before buying, by risk appetite. Higher risk buys more
-// readily; lower risk only buys evidence priced well under its willingness-to-pay.
+// readily; lower risk only buys evidence priced well under its willingness-to-pay. (Static fallback
+// when the model planner is unavailable.)
 const MIN_VALUE_PER_DOLLAR: Record<RiskAppetite, number> = { low: 2, medium: 1.5, high: 1 };
+
+// Minimum model-estimated value (0..1) the agent demands before paying, by risk appetite. Low-risk
+// agents only pay for evidence the model thinks is highly informative for this match; high-risk
+// agents pay on a weaker signal.
+const MIN_ESTIMATED_VALUE: Record<RiskAppetite, number> = { low: 0.6, medium: 0.45, high: 0.3 };
+
+/** Default evidence planner: ask the model to judge how much each paid source would sharpen THIS
+ *  prediction. Returns null (→ static fallback) when no model key is configured (offline/tests) or
+ *  on any error, so a prediction never blocks on the planning call. */
+async function defaultPlanEvidence(args: {
+  fixture: PredictFixture;
+  config: AgentConfig;
+  candidates: { source: EvidenceSource; priceUSDC: string }[];
+  remainingUSDC: string;
+}): Promise<EvidencePlan | null> {
+  if (!process.env.MODEL_PROVIDER_KEY) return null;
+  const { fixture, config, candidates, remainingUSDC } = args;
+  if (candidates.length === 0) return null;
+  const system = [
+    `You are ${config.persona}`,
+    config.prompt,
+    `Before predicting a football score you may BUY paid evidence, each priced in USDC. Spend only where the data would actually change or sharpen your prediction for THIS specific match — not by habit. Cheap, decisive signals beat expensive marginal ones.`,
+    `Respond with ONLY a JSON object, no markdown: {"plan":[{"source":"form|odds|injuries|h2h","value":<0..1 how much buying this would improve THIS prediction>,"worth":<true|false>,"reason":"<short, match-specific>"}]}.`,
+  ].join("\n\n");
+  const user = [
+    `Fixture: ${fixture.home} (home) vs ${fixture.away} (away).`,
+    `Budget remaining: $${remainingUSDC} USDC.`,
+    `Evidence for sale:\n${candidates.map((c) => `- ${c.source}: $${c.priceUSDC}`).join("\n")}`,
+    `Judge each source for this match.`,
+  ].join("\n\n");
+  try {
+    const raw = (await veniceJson({ system, user, model: config.model })) as { plan?: unknown };
+    const list = Array.isArray(raw?.plan) ? raw.plan : [];
+    const plan: EvidencePlan = {};
+    for (const item of list as Record<string, unknown>[]) {
+      const source = String(item.source ?? "") as EvidenceSource;
+      if (!(["form", "odds", "injuries", "h2h"] as string[]).includes(source)) continue;
+      plan[source] = {
+        value: clamp(num(item.value, 0.4), 0, 1),
+        worth: item.worth !== false,
+        reason: String(item.reason ?? "").slice(0, 160),
+      };
+    }
+    return Object.keys(plan).length ? plan : null;
+  } catch {
+    return null;
+  }
+}
 
 function parseUsdc(s: string): bigint {
   return BigInt(Math.round(parseFloat(s) * 1_000_000));
@@ -134,18 +203,36 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
   const callModel =
     deps.callModel ?? ((system, user) => veniceJson({ system, user, model: config.model }));
 
+  const planEvidence = deps.planEvidence ?? defaultPlanEvidence;
   const minRatio = MIN_VALUE_PER_DOLLAR[config.riskAppetite];
+  const minValue = MIN_ESTIMATED_VALUE[config.riskAppetite];
   const candidates = await listCandidates(baseUrl, config, fixture.id);
-
-  // Rank valued sources by value-per-dollar (willingness-to-pay / price), best first.
-  const ranked = candidates
-    .filter((c) => config.willingnessToPay[c.source] > 0n)
-    .map((c) => ({ ...c, vpd: Number(config.willingnessToPay[c.source]) / Number(c.price) }))
-    .sort((a, b) => b.vpd - a.vpd);
 
   let spent = args.spentSoFar ?? 0n;
   const remainingAtStart = config.budget - spent;
   let remaining = remainingAtStart > 0n ? remainingAtStart : 0n;
+
+  // Valued sources the agent's config will pay anything for.
+  const valued = candidates.filter((c) => config.willingnessToPay[c.source] > 0n);
+
+  // Ask the model to judge each source's value for THIS match (best-effort; null → static fallback).
+  const plan = await planEvidence({
+    fixture,
+    config,
+    candidates: valued.map((c) => ({ source: c.source, priceUSDC: fmt(c.price) })),
+    remainingUSDC: fmt(remaining),
+  });
+
+  // Rank: when the model planned, by estimated-value-per-dollar; else by willingness-to-pay/price.
+  const ranked = valued
+    .map((c) => {
+      const item = plan?.[c.source];
+      const priceUsd = Number(c.price) / 1_000_000;
+      const staticVpd = Number(config.willingnessToPay[c.source]) / Number(c.price);
+      const score = item ? item.value / priceUsd : staticVpd;
+      return { ...c, item, staticVpd, score };
+    })
+    .sort((a, b) => b.score - a.score);
 
   const decisions: EvidenceDecision[] = [];
   const purchases: Purchase[] = [];
@@ -157,7 +244,8 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
       source: c.source,
       priceUSDC: fmt(c.price),
       willingnessToPayUSDC: fmt(wtp),
-      valuePerDollar: +c.vpd.toFixed(2),
+      valuePerDollar: +c.score.toFixed(2),
+      ...(c.item ? { estimatedValue: +c.item.value.toFixed(2) } : {}),
     };
     if (c.price > wtp) {
       decisions.push({ ...base, decision: "skip", reason: `price ${fmt(c.price)} over willingness ${fmt(wtp)}` });
@@ -167,8 +255,15 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
       decisions.push({ ...base, decision: "skip", reason: `price ${fmt(c.price)} over remaining budget ${fmt(remaining)}` });
       continue;
     }
-    if (c.vpd < minRatio) {
-      decisions.push({ ...base, decision: "skip", reason: `value/price ${c.vpd.toFixed(2)} below ${config.riskAppetite} threshold ${minRatio}` });
+    if (c.item) {
+      // Model-driven: pay only when the data is informative enough for this match to justify the cost.
+      if (!c.item.worth || c.item.value < minValue) {
+        decisions.push({ ...base, decision: "skip", reason: `model values it ${c.item.value.toFixed(2)} for this match (<${minValue}): ${c.item.reason}` });
+        continue;
+      }
+    } else if (c.staticVpd < minRatio) {
+      // Static fallback (no model key): value-per-dollar threshold by risk appetite.
+      decisions.push({ ...base, decision: "skip", reason: `value/price ${c.staticVpd.toFixed(2)} below ${config.riskAppetite} threshold ${minRatio}` });
       continue;
     }
 
@@ -189,7 +284,12 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
     remaining -= c.price;
     purchases.push(result.purchase);
     evidence[c.source] = result.data;
-    decisions.push({ ...base, decision: "buy", reason: "value clears threshold, within budget", settlementUuid: result.purchase.settlementUuid });
+    decisions.push({
+      ...base,
+      decision: "buy",
+      reason: c.item ? `worth it for this match: ${c.item.reason}` : "value clears threshold, within budget",
+      settlementUuid: result.purchase.settlementUuid,
+    });
   }
 
   // Assemble persona + bought evidence into the model context.

@@ -61,13 +61,16 @@ const buyStub = async (a: {
 
 const callModel = async () => ({ homeScore: 2, awayScore: 1, confidence: 0.7, rationale: "stub" });
 
+// Force the static (no-model) decision path so the test stays deterministic and offline.
+const planEvidence = async () => null;
+
 const result = await runPredictLoop({
   config,
   agentId: "agent-1",
   fixture: { id: "wc-1", home: "Brazil", away: "Croatia" },
   signer,
   baseUrl: "stub://base",
-  deps: { listCandidates, buy: buyStub as never, callModel },
+  deps: { listCandidates, buy: buyStub as never, callModel, planEvidence },
 });
 
 // Buy-or-skip: ranked by value/dollar -> h2h(3.0) buy, form(2.0) buy, odds(1.2) skip (over budget);
