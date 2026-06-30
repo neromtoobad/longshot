@@ -6,7 +6,7 @@ import { saveFixtures, upcomingFixtures, allFixtures } from "../lib/fixtures-sto
 
 const poolId = process.argv[2] ?? "1";
 const start = process.env.WC_START ?? "20260615";
-const end = process.env.WC_END ?? "20260629";
+const end = process.env.WC_END ?? "20260720"; // through the final, so knockout rounds show as upcoming
 
 const fixtures = await fetchWorldCupFixtures({ poolId, start, end });
 saveFixtures(fixtures);
