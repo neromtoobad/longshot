@@ -277,6 +277,14 @@ Demos and sanity checks: `pnpm arc:check`, `pnpm wallet:demo`, `pnpm pay:demo`,
 - LONGSHOT does **not** use the MetaMask delegation framework (ERC-7710 / ERC-7715) or the 1Shot
   relayer. None of that exists on Arc. It is fully replaced by the Circle stack.
 
+## Deeper docs
+
+Internal architecture and build-order notes live in [`docs/`](docs/):
+[`BUILD_GUIDE.md`](docs/BUILD_GUIDE.md) (architecture + the data model),
+[`EXECUTION_PLAN.md`](docs/EXECUTION_PLAN.md) (the prompt-by-prompt build order), and
+[`PHASE_0_CHECKLIST.md`](docs/PHASE_0_CHECKLIST.md) (setup). `CLAUDE.md` at the root is the
+Claude Code project context.
+
 ---
 
 Reference prior art: [CROSSFIRE](https://github.com/neromtoobad/crossfire) for arena / leaderboard /
