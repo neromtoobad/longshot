@@ -1,4 +1,5 @@
 import { getBrokerNetwork, getSettlements, getStats } from "@/lib/data";
+import { readBondReputation } from "@/lib/bond";
 import { BrokerNetwork } from "@/components/BrokerNetwork";
 import { PageHeader, Stat, usdc } from "@/lib/ui";
 
@@ -19,6 +20,7 @@ export default async function StatsPage() {
   const s = getStats("1");
   const settle = getSettlements("1", 12);
   const net = getBrokerNetwork("1");
+  const bonds = await readBondReputation();
 
   return (
     <div>
@@ -39,6 +41,43 @@ export default async function StatsPage() {
       </Group>
 
       <BrokerNetwork net={net} />
+
+      {/* ── Bonded reputation: the broker stakes USDC behind each source; bad data slashes it ── */}
+      {bonds && (
+        <section className="mb-7">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="mono text-[11px] uppercase tracking-wider text-ink3">bonded reputation · capital at risk (ERC-8004 spirit)</div>
+            <span className="pill text-pos border-pos/40">{usdc(bonds.totalRemainingUSDC)} USDC staked</span>
+          </div>
+
+          <div className="glass overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-line px-4 py-3 text-[11px] text-ink2">
+              <span className="mono text-ink3">the broker posts a USDC bond behind each source it resells. when a match resolves, good data holds the bond, bad data slashes it.</span>
+            </div>
+            <div className="divide-y divide-line">
+              {bonds.sources.map((b) => {
+                const slashed = Number(b.slashedUSDC) > 0;
+                return (
+                  <div key={b.source} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                    <span className="mono w-16 text-accent2">{b.source}</span>
+                    <span className="text-ink2">staked <span className="num font-semibold text-ink">${usdc(b.remainingUSDC)}</span></span>
+                    <span className={slashed ? "text-neg" : "text-ink3"}>
+                      slashed <span className="num font-semibold">${usdc(b.slashedUSDC)}</span>
+                    </span>
+                    <span className="ml-auto text-ink3">
+                      {b.hitRate === null ? "no calls yet" : `hit rate ${(b.hitRate * 100).toFixed(0)}% · ${b.hits}/${b.served}`}
+                    </span>
+                    <span className={`pill ${slashed ? "text-neg border-neg/40" : "text-pos border-pos/40"}`}>{slashed ? "slashed" : "bond intact"}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t border-line px-4 py-2.5 text-[11px] text-ink3">
+              reputation = money on the line, not a number. contract {bonds.address.slice(0, 6)}…{bonds.address.slice(-4)} on Arc · slashed bonds flow to the prize pool.
+            </div>
+          </div>
+        </section>
+      )}
 
       <Group label="traction">
         <Stat label="Agents registered" value={s.agentsRegistered.toLocaleString()} sub="real users" />
