@@ -1,0 +1,17 @@
+# Never upload secrets or local runtime state to the public Vercel deployment.
+# Next.js auto-loads .env* at build/runtime, so excluding these keeps keys out of the deploy.
+.env
+.env.*
+**/.env
+**/.env.*
+.data
+.data.bak
+.data*/
+circle-recovery.dat
+recovery_file_*.dat
+*.dat
+.claude
+node_modules
+contracts/out
+contracts/cache
+contracts/lib
