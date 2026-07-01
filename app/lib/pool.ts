@@ -8,6 +8,7 @@ import { resolve as resolvePath } from "node:path";
 import { createWalletClient, http, type Address, type Hash } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { arcTestnet, createArcPublicClient } from "@longshot/shared";
+import { POOL_ADDRESS } from "./contracts";
 
 const poolAbi = [
   {
@@ -98,9 +99,15 @@ export async function readPoolInfo(poolId: bigint): Promise<PoolInfo> {
 }
 
 function poolAddress(): Address {
-  const path = resolvePath(process.cwd(), process.env.ADDRESSES_PATH ?? "../shared/addresses.arc.json");
-  const json = JSON.parse(readFileSync(path, "utf-8")) as { contracts: { Pool: Address } };
-  return json.contracts.Pool;
+  // Prefer the deploy-artifact file (local dev, overridable via ADDRESSES_PATH). On Vercel the
+  // repo-root shared/ dir isn't in the serverless bundle, so fall back to the committed constant.
+  try {
+    const path = resolvePath(process.cwd(), process.env.ADDRESSES_PATH ?? "../shared/addresses.arc.json");
+    const json = JSON.parse(readFileSync(path, "utf-8")) as { contracts: { Pool: Address } };
+    return json.contracts.Pool;
+  } catch {
+    return POOL_ADDRESS;
+  }
 }
 
 function resolverKey(): `0x${string}` {
