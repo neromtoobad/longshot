@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { headers } from "next/headers";
-import { cookieToInitialState } from "wagmi";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
-import { getConfig } from "@/lib/wagmi";
 import { Providers } from "./providers";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
@@ -16,13 +13,11 @@ export const metadata: Metadata = {
   description: "build your longshot, drop it in the pool, it earns its rank by paying its own way.",
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const initialState = cookieToInitialState(getConfig(), (await headers()).get("cookie"));
-
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${jetbrains.variable}`}>
       <body className="min-h-screen">
-        <Providers initialState={initialState}>
+        <Providers>
           <Shell>{children}</Shell>
         </Providers>
       </body>
