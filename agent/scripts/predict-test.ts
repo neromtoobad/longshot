@@ -21,12 +21,12 @@ const template: AgentTemplate = {
   persona: "A deterministic tester.",
   riskAppetite: "high", // minRatio 1
   dataPreference: { preferBroker: false, willingnessToPay: { form: "6000", odds: "6000", h2h: "6000" } },
-  modelProvider: "venice",
+  modelProvider: "default",
   budget: "8000", // 0.008 USDC — fits 2 of the 3 valued buys, not all
 };
 const config = compileTemplate(template);
 
-const PRICES: Record<string, bigint> = { form: 3000n, odds: 5000n, h2h: 2000n, injuries: 2000n };
+const PRICES: Record<string, bigint> = { form: 3000n, odds: 5000n, h2h: 2000n, table: 2000n };
 
 const listCandidates = async (): Promise<Candidate[]> =>
   (Object.keys(PRICES) as (keyof typeof PRICES)[]).map((source) => ({
@@ -67,14 +67,14 @@ const planEvidence = async () => null;
 const result = await runPredictLoop({
   config,
   agentId: "agent-1",
-  fixture: { id: "wc-1", home: "Brazil", away: "Croatia" },
+  fixture: { id: "401878771", home: "Everton", away: "Chelsea" },
   signer,
   baseUrl: "stub://base",
   deps: { listCandidates, buy: buyStub as never, callModel, planEvidence },
 });
 
 // Buy-or-skip: ranked by value/dollar -> h2h(3.0) buy, form(2.0) buy, odds(1.2) skip (over budget);
-// injuries never valued (WTP 0) so it's not even a candidate decision.
+// table never valued (WTP 0) so it's not even a candidate decision.
 const bought = result.decisions.filter((d) => d.decision === "buy").map((d) => d.source);
 const skipped = result.decisions.filter((d) => d.decision === "skip");
 

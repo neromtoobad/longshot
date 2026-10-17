@@ -10,35 +10,29 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "x402:smoke": "tsx --env-file=../.env scripts/x402-smoke.ts",
-    "fixtures:sync": "tsx --env-file=../.env scripts/fixtures-sync.ts",
-    "resolve:pool": "tsx --env-file=../.env scripts/resolve-pool.ts",
-    "reconcile": "tsx --env-file=../.env scripts/reconcile-settlements.ts",
-    "tick": "tsx --env-file=../.env scripts/tick.ts",
-    "market:sync": "tsx scripts/market-sync.ts"
+    "fixtures:sync": "tsx --env-file-if-exists=../.env scripts/fixtures-sync.ts"
   },
   "dependencies": {
-    "@circle-fin/modular-wallets-core": "^1.0.13",
-    "@circle-fin/user-controlled-wallets": "^10.6.0",
-    "@circle-fin/w3s-pw-web-sdk": "^1.1.11",
-    "@circle-fin/x402-batching": "^3.0.4",
+    "@circle-fin/x402-batching": "^3.5.0",
     "@longshot/shared": "workspace:*",
     "@rainbow-me/rainbowkit": "^2.2.11",
-    "@tanstack/react-query": "^5.62.0",
-    "@x402/core": "^2.11.0",
-    "@x402/evm": "^2.11.0",
-    "next": "^16.2.7",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "viem": "^2.21.0",
-    "wagmi": "^2.14.0"
+    "@tanstack/react-query": "^5.104.3",
+    "@x402/core": "^2.28.0",
+    "@x402/evm": "^2.28.0",
+    "@x402/svm": "^2.28.0",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "viem": "^2.57.7",
+    "wagmi": "^2.19.5"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "eslint-config-next": "^16.2.7",
-    "tailwindcss": "^4.0.0",
-    "tsx": "^4.21.0"
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint-config-next": "^16.4.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15"
   }
 }

@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EvidenceSource } from "@longshot/shared";
 import { updateAgent } from "@/lib/store";
+import { verifyEdit } from "@/lib/verify";
 
 export const dynamic = "force-dynamic";
 
-const SOURCES: EvidenceSource[] = ["form", "odds", "injuries", "h2h"];
+const SOURCES: EvidenceSource[] = ["form", "odds", "table", "h2h"];
 
-// Edit an owned agent's strategy. Owner-gated in the store (owner must match the stored owner).
-// NOTE: testnet trust model — the body asserts `owner`; production should verify a wallet signature.
+// Edit an owned agent's strategy. The owner signs a short, timestamped message with their wallet;
+// the store then checks the signer is the agent's owner of record.
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -20,6 +21,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const owner = typeof body.owner === "string" ? body.owner : "";
   if (!owner) return NextResponse.json({ error: "owner required" }, { status: 400 });
+  const ok = await verifyEdit(id, owner, String(body.issuedAt ?? ""), String(body.signature ?? ""));
+  if (!ok) return NextResponse.json({ error: "missing or expired wallet signature" }, { status: 401 });
 
   const wtpIn = (body.willingnessToPay ?? undefined) as Record<string, unknown> | undefined;
   let willingnessToPay: Partial<Record<EvidenceSource, string>> | undefined;

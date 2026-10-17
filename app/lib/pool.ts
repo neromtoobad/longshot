@@ -1,13 +1,7 @@
-// On-chain Pool helpers for the results resolver: read a fixture's stored result (idempotency) and
-// write a result via resolveFixture from the resolver key (DEPLOYER is owner+resolver for MVP).
-// Server-only (uses a private key + fs). TODO(trust upgrade): UMA optimistic oracle for resolution
-// — see circlefin/arc-prediction-markets.
+// Read-only view of an on-chain pool (prize pool, entry fee, status). Server-only (RPC). Cached
+// briefly so page renders don't hammer the RPC. Writes (results, scores) happen in the worker.
 
-import { readFileSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
-import { createWalletClient, http, type Address, type Hash } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { arcTestnet, createArcPublicClient } from "@longshot/shared";
+import { createArcPublicClient, isDeployed } from "@longshot/shared";
 import { POOL_ADDRESS } from "./contracts";
 
 const poolAbi = [
@@ -72,9 +66,9 @@ export interface PoolInfo {
 
 const POOL_STATUS = ["open", "closed", "finalized"] as const;
 
-export async function readPoolInfo(poolId: bigint): Promise<PoolInfo> {
+async function fetchPoolInfo(poolId: bigint): Promise<PoolInfo> {
   const p = (await createArcPublicClient().readContract({
-    address: poolAddress(),
+    address: POOL_ADDRESS,
     abi: poolAbi,
     functionName: "getPool",
     args: [poolId],
@@ -98,61 +92,19 @@ export async function readPoolInfo(poolId: bigint): Promise<PoolInfo> {
   };
 }
 
-function poolAddress(): Address {
-  // Prefer the deploy-artifact file (local dev, overridable via ADDRESSES_PATH). On Vercel the
-  // repo-root shared/ dir isn't in the serverless bundle, so fall back to the committed constant.
+
+const cache = new Map<string, { at: number; info: PoolInfo }>();
+
+/** On-chain pool info, or null before deploy / on RPC failure. */
+export async function readPoolInfo(poolId: string | undefined): Promise<PoolInfo | null> {
+  if (!poolId || !isDeployed()) return null;
+  const hit = cache.get(poolId);
+  if (hit && Date.now() - hit.at < 30_000) return hit.info;
   try {
-    const path = resolvePath(process.cwd(), process.env.ADDRESSES_PATH ?? "../shared/addresses.arc.json");
-    const json = JSON.parse(readFileSync(path, "utf-8")) as { contracts: { Pool: Address } };
-    return json.contracts.Pool;
+    const info = await fetchPoolInfo(BigInt(poolId));
+    cache.set(poolId, { at: Date.now(), info });
+    return info;
   } catch {
-    return POOL_ADDRESS;
+    return hit?.info ?? null;
   }
-}
-
-function resolverKey(): `0x${string}` {
-  const pk = process.env.DEPLOYER_PRIVATE_KEY;
-  if (!pk) throw new Error("DEPLOYER_PRIVATE_KEY (resolver key) not set");
-  return (pk.startsWith("0x") ? pk : `0x${pk}`) as `0x${string}`;
-}
-
-export interface OnChainResult {
-  resolved: boolean;
-  homeScore: number;
-  awayScore: number;
-}
-
-export async function readResult(poolId: bigint, fixtureId: bigint): Promise<OnChainResult> {
-  const raw = (await createArcPublicClient().readContract({
-    address: poolAddress(),
-    abi: poolAbi,
-    functionName: "results",
-    args: [poolId, fixtureId],
-  })) as unknown;
-  if (Array.isArray(raw)) {
-    return { resolved: Boolean(raw[0]), homeScore: Number(raw[1]), awayScore: Number(raw[2]) };
-  }
-  const o = raw as { resolved: boolean; homeScore: number | bigint; awayScore: number | bigint };
-  return { resolved: o.resolved, homeScore: Number(o.homeScore), awayScore: Number(o.awayScore) };
-}
-
-export async function resolveFixtureOnChain(
-  poolId: bigint,
-  fixtureId: bigint,
-  homeScore: number,
-  awayScore: number,
-): Promise<Hash> {
-  const rpc = process.env.RPC;
-  if (!rpc) throw new Error("process.env.RPC not set");
-  const wallet = createWalletClient({
-    account: privateKeyToAccount(resolverKey()),
-    chain: arcTestnet,
-    transport: http(rpc),
-  });
-  return wallet.writeContract({
-    address: poolAddress(),
-    abi: poolAbi,
-    functionName: "resolveFixture",
-    args: [poolId, fixtureId, homeScore, awayScore],
-  });
 }

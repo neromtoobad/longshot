@@ -1,12 +1,17 @@
-// Client-safe contract addresses + minimal ABIs for the browser wallet flow (build → register →
-// approve → join). Addresses are the deployed Arc testnet contracts (public).
+// Client-safe contract addresses + minimal ABIs for the browser wallet flow (build -> register ->
+// approve -> join -> fund). Addresses come from shared/src/addresses.json (written by deploy:all).
 
-export const POOL_ADDRESS = "0xF28BC365Fe93e8a609a81790d88EBBDD1D3557c0" as const;
-export const REGISTRY_ADDRESS = "0x270128D9E2b7fa1d307CddA5Bb40aFd46d683a72" as const;
-export const REPUTATION_BOND_ADDRESS = "0xf69bB8b0783b6e1E71de60cE8E7fb139971BdefB" as const;
-export const USDC_ADDRESS = "0x3600000000000000000000000000000000000000" as const;
-export const WORLD_CUP_POOL_ID = 1n;
-export const ENTRY_FEE = 1_000_000n; // 1 USDC
+import { ADDRESSES, poolFor, type CompetitionKey } from "@longshot/shared";
+
+export const POOL_ADDRESS = ADDRESSES.contracts.Pool;
+export const REGISTRY_ADDRESS = ADDRESSES.contracts.AgentRegistry;
+export const USDC_ADDRESS = ADDRESSES.usdc;
+
+/** On-chain pool id + entry fee for a competition, or null before deploy. */
+export function poolConfig(key: CompetitionKey): { poolId: bigint; entryFee: bigint } | null {
+  const p = poolFor(key);
+  return p ? { poolId: BigInt(p.poolId), entryFee: BigInt(p.entryFeeUSDC) } : null;
+}
 
 export const registryAbi = [
   {
@@ -31,13 +36,6 @@ export const registryAbi = [
       { name: "name", type: "string", indexed: false },
     ],
   },
-  {
-    type: "function",
-    name: "agentsByOwner",
-    stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
-    outputs: [{ type: "uint256[]" }],
-  },
 ] as const;
 
 export const usdcAbi = [
@@ -53,19 +51,29 @@ export const usdcAbi = [
   },
   {
     type: "function",
-    name: "allowance",
-    stateMutability: "view",
+    name: "transfer",
+    stateMutability: "nonpayable",
     inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
     ],
-    outputs: [{ type: "uint256" }],
+    outputs: [{ type: "bool" }],
   },
   {
     type: "function",
     name: "balanceOf",
     stateMutability: "view",
     inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
     outputs: [{ type: "uint256" }],
   },
 ] as const;
@@ -85,10 +93,7 @@ export const poolAbi = [
     type: "function",
     name: "joined",
     stateMutability: "view",
-    inputs: [
-      { name: "poolId", type: "uint256" },
-      { name: "agentId", type: "uint256" },
-    ],
+    inputs: [{ type: "uint256" }, { type: "uint256" }],
     outputs: [{ type: "bool" }],
   },
 ] as const;

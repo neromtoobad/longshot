@@ -20,7 +20,7 @@ export type IsoTimestamp = string;
 
 export type RiskAppetite = "low" | "medium" | "high";
 
-export type EvidenceSource = "form" | "odds" | "injuries" | "h2h";
+export type EvidenceSource = "form" | "odds" | "table" | "h2h";
 
 export type PoolStatus = "open" | "closed" | "finalized";
 
@@ -56,6 +56,8 @@ export interface Pool {
 export interface Fixture {
   id: string;
   poolId: string;
+  /** Competition key (see leagues.ts), e.g. "epl". */
+  competition: string;
   home: string;
   away: string;
   /** Team crest/logo URLs (from ESPN); null if unavailable. */
@@ -63,6 +65,8 @@ export interface Fixture {
   awayLogo: string | null;
   kickoff: IsoTimestamp;
   status: FixtureStatus;
+  /** True when ESPN marks the match postponed or cancelled. It never resolves. */
+  postponed?: boolean;
   /** Final home score; null until resolved. */
   homeScore: number | null;
   /** Final away score; null until resolved. */

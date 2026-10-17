@@ -1,10 +1,14 @@
-// Quick live check that the Venice model layer + MODEL_PROVIDER_KEY work.
-// Run: pnpm model:ping
+// Quick live check that the configured model endpoint answers with JSON.
+// Run: pnpm --filter @longshot/agent model:ping
 
-import { veniceJson } from "../src/model/venice.ts";
+import { llmJson, modelConfigured, defaultModelName } from "../src/model/llm.ts";
 
-const out = await veniceJson({
+if (!modelConfigured()) {
+  console.log("no MODEL_API_KEY set: agents will use the built-in statistical model");
+  process.exit(0);
+}
+const out = await llmJson({
   system: "Respond with ONLY a JSON object, no markdown.",
-  user: 'Return exactly {"ok": true, "msg": "hello from venice"}.',
+  user: 'Return exactly {"ok": true}.',
 });
-console.log("venice responded:", JSON.stringify(out));
+console.log(`${defaultModelName()} responded:`, JSON.stringify(out));

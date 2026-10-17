@@ -5,10 +5,9 @@
 
 import type { EvidenceSource } from "@longshot/shared";
 import { EVIDENCE_PRICES, priceToAtomic } from "./x402";
-import { formEvidence, oddsEvidence, injuriesEvidence, h2hEvidence } from "./evidence";
 import { readData, writeData } from "./datadir";
 
-export const SOURCES: EvidenceSource[] = ["form", "odds", "injuries", "h2h"];
+export const SOURCES: EvidenceSource[] = ["form", "odds", "table", "h2h"];
 
 /** Broker markup in basis points (default 20%). Configurable via BROKER_MARKUP_BPS. */
 export const BROKER_MARKUP_BPS = Number(process.env.BROKER_MARKUP_BPS ?? 2000);
@@ -27,19 +26,6 @@ export function brokerPriceAtomic(source: EvidenceSource): { base: number; marku
 /** "$0.00X" string for the broker price (consumed by withGateway). */
 export function brokerPriceStr(source: EvidenceSource): string {
   return `$${brokerPriceAtomic(source).total / 1_000_000}`;
-}
-
-export function evidenceFor(source: EvidenceSource, fixtureId: string) {
-  switch (source) {
-    case "form":
-      return formEvidence(fixtureId);
-    case "odds":
-      return oddsEvidence(fixtureId);
-    case "injuries":
-      return injuriesEvidence(fixtureId);
-    case "h2h":
-      return h2hEvidence(fixtureId);
-  }
 }
 
 // --- reputation (hit rate of served data vs outcomes) ----------------------
@@ -114,13 +100,14 @@ export function brokerRevenue() {
   };
 }
 
-export function brokerCatalog() {
+export function brokerCatalog(available?: Record<EvidenceSource, boolean>) {
   return {
     markupBps: BROKER_MARKUP_BPS,
     sources: SOURCES.map((source) => {
       const p = brokerPriceAtomic(source);
       return {
         source,
+        ...(available ? { available: available[source] } : {}),
         basePriceUSDC: (p.base / 1_000_000).toString(),
         markupUSDC: (p.markup / 1_000_000).toString(),
         brokerPriceUSDC: (p.total / 1_000_000).toString(),

@@ -3,7 +3,7 @@
 // For one agent and one fixture: rank candidate evidence by expected value vs price (the
 // buy-or-skip decision under budget — logged for the agent page + the ROI story), buy what's worth
 // it through the paying client (cap-enforced), assemble it + the persona into the model context,
-// call Venice, and emit a structured prediction + a commitment hash for Pool.recordPrediction.
+// call the model (an OpenAI-compatible LLM, or the built-in statistical model), and emit a structured prediction + a commitment hash for Pool.recordPrediction.
 //
 // buy / model / catalog deps are injectable so the loop is testable without network or payment.
 
@@ -12,13 +12,16 @@ import type { Bytes32, EvidenceSource, Purchase, RiskAppetite } from "@longshot/
 import type { AgentConfig } from "./template.js";
 import { buyEvidence, type BuyEvidenceResult } from "./paying/client.js";
 import type { X402Signer } from "./paying/signers.js";
-import { veniceJson } from "./model/venice.js";
-import { fetchMarketplaceResearch } from "./paying/marketplace.js";
+import { llmJson, modelConfigured } from "./model/llm.js";
+import { statsPredict } from "./model/stats.js";
 
 export interface PredictFixture {
   id: string;
   home: string;
   away: string;
+  /** Competition name for context, e.g. "Premier League". */
+  competition?: string;
+  kickoff?: string;
 }
 
 export interface Prediction {
@@ -113,28 +116,29 @@ async function defaultPlanEvidence(args: {
   candidates: { source: EvidenceSource; priceUSDC: string }[];
   remainingUSDC: string;
 }): Promise<EvidencePlan | null> {
-  if (!process.env.MODEL_PROVIDER_KEY) return null;
+  if (!modelConfigured()) return null;
   const { fixture, config, candidates, remainingUSDC } = args;
   if (candidates.length === 0) return null;
   const system = [
     `You are ${config.persona}`,
     config.prompt,
     `Before predicting a football score you may BUY paid evidence, each priced in USDC. Spend only where the data would actually change or sharpen your prediction for THIS specific match — not by habit. Cheap, decisive signals beat expensive marginal ones.`,
-    `Respond with ONLY a JSON object, no markdown: {"plan":[{"source":"form|odds|injuries|h2h","value":<0..1 how much buying this would improve THIS prediction>,"worth":<true|false>,"reason":"<short, match-specific>"}]}.`,
+    `Sources: form = each side's last five results with goals; odds = bookmaker 1X2 and over/under prices; table = league position, points per game and goal difference; h2h = past meetings between these two clubs.`,
+    `Respond with ONLY a JSON object, no markdown: {"plan":[{"source":"form|odds|table|h2h","value":<0..1 how much buying this would improve THIS prediction>,"worth":<true|false>,"reason":"<short, match-specific>"}]}.`,
   ].join("\n\n");
   const user = [
-    `Fixture: ${fixture.home} (home) vs ${fixture.away} (away).`,
+    `Fixture: ${fixture.home} (home) vs ${fixture.away} (away)${fixture.competition ? `, ${fixture.competition}` : ""}.`,
     `Budget remaining: $${remainingUSDC} USDC.`,
     `Evidence for sale:\n${candidates.map((c) => `- ${c.source}: $${c.priceUSDC}`).join("\n")}`,
     `Judge each source for this match.`,
   ].join("\n\n");
   try {
-    const raw = (await veniceJson({ system, user, model: config.model })) as { plan?: unknown };
+    const raw = (await llmJson({ system, user, model: config.model })) as { plan?: unknown };
     const list = Array.isArray(raw?.plan) ? raw.plan : [];
     const plan: EvidencePlan = {};
     for (const item of list as Record<string, unknown>[]) {
       const source = String(item.source ?? "") as EvidenceSource;
-      if (!(["form", "odds", "injuries", "h2h"] as string[]).includes(source)) continue;
+      if (!(["form", "odds", "table", "h2h"] as string[]).includes(source)) continue;
       plan[source] = {
         value: clamp(num(item.value, 0.4), 0, 1),
         worth: item.worth !== false,
@@ -160,11 +164,12 @@ async function defaultListCandidates(
   config: AgentConfig,
   fixtureId: string,
 ): Promise<Candidate[]> {
-  const res = await fetch(`${baseUrl}/api/broker/catalog`);
+  const res = await fetch(`${baseUrl}/api/broker/catalog?fixtureId=${encodeURIComponent(fixtureId)}`);
   const catalog = (await res.json()) as {
-    sources: { source: EvidenceSource; basePriceUSDC: string; brokerPriceUSDC: string }[];
+    sources: { source: EvidenceSource; basePriceUSDC: string; brokerPriceUSDC: string; available?: boolean }[];
   };
-  return catalog.sources.map((s) => {
+  // Only offer what the seller can actually serve for this fixture (odds post a few days out).
+  return catalog.sources.filter((s) => s.available !== false).map((s) => {
     const price = parseUsdc(config.preferBroker ? s.brokerPriceUSDC : s.basePriceUSDC);
     const path = config.preferBroker ? `/api/broker/evidence/${s.source}` : `/api/evidence/${s.source}`;
     return { source: s.source, price, url: `${baseUrl}${path}?fixtureId=${fixtureId}` };
@@ -200,8 +205,7 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
   const deps = args.deps ?? {};
   const listCandidates = deps.listCandidates ?? defaultListCandidates;
   const buy = deps.buy ?? buyEvidence;
-  const callModel =
-    deps.callModel ?? ((system, user) => veniceJson({ system, user, model: config.model }));
+  const callModel = deps.callModel;
 
   const planEvidence = deps.planEvidence ?? defaultPlanEvidence;
   const minRatio = MIN_VALUE_PER_DOLLAR[config.riskAppetite];
@@ -267,15 +271,22 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
       continue;
     }
 
-    const result = await buy({
-      url: c.url,
-      signer,
-      agentId,
-      fixtureId: fixture.id,
-      source: c.source,
-      budget: config.budget,
-      spent,
-    });
+    let result: BuyEvidenceResult;
+    try {
+      result = await buy({
+        url: c.url,
+        signer,
+        agentId,
+        fixtureId: fixture.id,
+        source: c.source,
+        budget: config.budget,
+        spent,
+      });
+    } catch (e) {
+      // A rejected payment (e.g. Gateway balance not topped up yet) skips this source only.
+      decisions.push({ ...base, decision: "skip", reason: `payment failed: ${e instanceof Error ? e.message.slice(0, 100) : "error"}` });
+      continue;
+    }
     if (!result.ok) {
       decisions.push({ ...base, decision: "skip", reason: `budget guard: ${result.reason}` });
       continue;
@@ -298,34 +309,33 @@ export async function runPredictLoop(args: PredictArgs): Promise<PredictResult> 
     config.prompt,
     `Respond with ONLY a JSON object, no markdown: {"homeScore": <int>=0>, "awayScore": <int>=0>, "confidence": <0..1>, "rationale": "<one or two sentences>"}.`,
   ].join("\n\n");
-  // Opt-in (USE_MARKETPLACE=1): buy real research from the Circle Agent Marketplace (x402 nanopayment
-  // on Base) and feed it to the model as premium evidence. Never blocks a prediction — skips on any error.
-  let marketplaceBlock = "";
-  if (process.env.USE_MARKETPLACE === "1") {
-    try {
-      const r = await fetchMarketplaceResearch(
-        `${fixture.home} vs ${fixture.away} football match preview: recent form, key injuries, head-to-head, likely scoreline. World Cup 2026.`,
-      );
-      if (r.ok && r.text) {
-        marketplaceBlock = `Premium research you bought from the Circle Agent Marketplace (x402 nanopayment on ${r.chain}):\n${r.text}`;
-      }
-    } catch {
-      /* marketplace is best-effort; never block the prediction */
-    }
-  }
-
   const user = [
-    `Fixture: ${fixture.home} (home) vs ${fixture.away} (away).`,
+    `Fixture: ${fixture.home} (home) vs ${fixture.away} (away)${fixture.competition ? `, ${fixture.competition}` : ""}.`,
     Object.keys(evidence).length
       ? `Evidence you bought:\n${JSON.stringify(evidence, null, 2)}`
       : `You chose to buy no evidence. Predict from your prior.`,
-    marketplaceBlock,
     `Predict the exact final score.`,
   ]
     .filter(Boolean)
     .join("\n\n");
 
-  const prediction = parsePrediction(await callModel(system, user));
+  // Model: an injected stub (tests), else the LLM, else the statistical model. An LLM failure falls
+  // back to the statistical model so a flaky endpoint never costs a prediction.
+  const stats = () =>
+    statsPredict({ home: fixture.home, away: fixture.away, evidence, riskAppetite: config.riskAppetite });
+  let prediction: Prediction;
+  if (callModel) {
+    prediction = parsePrediction(await callModel(system, user));
+  } else if (modelConfigured()) {
+    try {
+      prediction = parsePrediction(await llmJson({ system, user, model: config.model }));
+    } catch (e) {
+      const s = stats();
+      prediction = { ...s, rationale: `${s.rationale} (model unavailable: ${e instanceof Error ? e.message.slice(0, 80) : "error"})` };
+    }
+  } else {
+    prediction = stats();
+  }
   const hash = predictionHash(agentId, fixture.id, prediction);
 
   return {

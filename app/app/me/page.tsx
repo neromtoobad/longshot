@@ -2,18 +2,23 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useWallet } from "@/lib/wallet-context";
+import { useAccount, useReadContract, useSignMessage } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { USDC_ADDRESS, usdcAbi } from "@/lib/contracts";
+import { arcChain } from "@/lib/wagmi";
 import { Avatar } from "@/components/Avatar";
 import { AVATAR_STYLES, randomSeed } from "@/lib/avatar";
 
-const SOURCES = ["form", "odds", "injuries", "h2h"] as const;
+const SOURCES = ["form", "odds", "table", "h2h"] as const;
 type Source = (typeof SOURCES)[number];
 
 interface MyAgent {
   agentId: string;
   name: string;
+  league: string;
   avatar?: { style: string; seed: string };
   onChainAgentId?: string;
+  walletAddress: string;
   riskAppetite: string;
   preferBroker: boolean;
   budgetUSDC: string;
@@ -37,7 +42,8 @@ const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const roiLabel = (roi: number) => (!Number.isFinite(roi) ? "∞" : roi.toFixed(roi >= 100 ? 0 : 1));
 
 export default function MePage() {
-  const { address, isConnected } = useWallet();
+  const { address, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
   const [agents, setAgents] = useState<MyAgent[] | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
 
@@ -58,7 +64,12 @@ export default function MePage() {
     return (
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight">My Agents</h1>
-        <div className="glass mt-5 p-8 text-center text-sm text-ink2">Connect your wallet (top right) to see and tune the agents you own.</div>
+        <div className="glass mt-5 p-8 text-center text-sm text-ink2">
+          Connect your wallet to see and tune the agents you own.
+          <div className="mt-4">
+            <button onClick={() => openConnectModal?.()} className="rounded-xl bg-accent px-4 py-2 text-sm font-bold text-white">Connect wallet</button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -94,6 +105,14 @@ export default function MePage() {
 
 function AgentRow({ agent: a, onEdit }: { agent: MyAgent; onEdit: () => void }) {
   const buys = SOURCES.filter((s) => Number(a.willingnessToPay[s] ?? "0") > 0);
+  const { data: walletBal } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: usdcAbi,
+    functionName: "balanceOf",
+    args: a.walletAddress ? [a.walletAddress as `0x${string}`] : undefined,
+    chainId: arcChain.id,
+    query: { enabled: Boolean(a.walletAddress), refetchInterval: 30_000 },
+  });
   return (
     <div className="glass p-4">
       <div className="flex items-start gap-4">
@@ -101,12 +120,19 @@ function AgentRow({ agent: a, onEdit }: { agent: MyAgent; onEdit: () => void }) 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold">{a.name}</span>
+            {a.league && <span className="pill text-accent2 border-accent/40">{a.league}</span>}
             <span className="pill text-ink2 border-line2">{a.riskAppetite} risk</span>
             <span className={`pill ${a.preferBroker ? "text-gold border-gold/40" : "text-ink2 border-line2"}`}>{a.preferBroker ? "broker" : "direct"}</span>
             <span className={`pill ${a.provisioned ? "text-pos border-pos/40" : "text-ink3 border-line2"}`}>{a.provisioned ? "live" : "wallet pending"}</span>
             {a.onChainAgentId && <span className="mono text-[10px] text-ink3">on-chain #{a.onChainAgentId}</span>}
           </div>
-          <div className="mono mt-1 text-[11px] text-ink3">buys: {buys.length ? buys.join(", ") : "nothing — predicts on prior"}</div>
+          <div className="mono mt-1 text-[11px] text-ink3">buys: {buys.length ? buys.join(", ") : "nothing, predicts on prior"}</div>
+          {a.walletAddress && (
+            <div className="mono mt-1 text-[11px] text-ink3">
+              wallet {short(a.walletAddress)}
+              {walletBal !== undefined && (walletBal as bigint) > 0n && <> · {base2usdc(String(walletBal))} USDC waiting to move into Gateway</>}
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 gap-2">
           <Link href={`/agent/${a.agentId}`} className="rounded-lg border border-line2 px-3 py-1.5 text-xs text-ink hover:bg-surface2">View</Link>
@@ -135,6 +161,7 @@ function AgentRow({ agent: a, onEdit }: { agent: MyAgent; onEdit: () => void }) 
 const inputCls = "w-full rounded-xl border border-line bg-surface2 px-3 py-2 text-sm text-ink outline-none transition focus:border-accent/60";
 
 function EditForm({ agent: a, owner, onClose, onSaved }: { agent: MyAgent; owner: string; onClose: () => void; onSaved: () => void }) {
+  const { signMessageAsync } = useSignMessage();
   const [name, setName] = useState(a.name);
   const [risk, setRisk] = useState(a.riskAppetite);
   const [broker, setBroker] = useState(a.preferBroker);
@@ -159,10 +186,13 @@ function EditForm({ agent: a, owner, onClose, onSaved }: { agent: MyAgent; owner
     setError(null);
     try {
       const willingnessToPay = Object.fromEntries(SOURCES.map((s) => [s, wtp[s].on ? usdc2base(wtp[s].v) : "0"]));
+      // Prove ownership with a wallet signature (no gas). The server checks it is fresh and yours.
+      const issuedAt = new Date().toISOString();
+      const signature = await signMessageAsync({ message: `LONGSHOT: edit agent ${a.agentId}\nissued ${issuedAt}` });
       const res = await fetch(`/api/agents/${a.agentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ owner, name, riskAppetite: risk, preferBroker: broker, budget: usdc2base(budget), willingnessToPay, persona, prompt, avatar: { style, seed } }),
+        body: JSON.stringify({ owner, issuedAt, signature, name, riskAppetite: risk, preferBroker: broker, budget: usdc2base(budget), willingnessToPay, persona, prompt, avatar: { style, seed } }),
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || json.error) throw new Error(json.error ?? "save failed");
@@ -220,7 +250,7 @@ function EditForm({ agent: a, owner, onClose, onSaved }: { agent: MyAgent; owner
               <button type="button" onClick={() => setWtp((w) => ({ ...w, [s]: { ...w[s], on: !w[s].on } }))} className={`relative h-6 w-11 shrink-0 rounded-full transition ${wtp[s].on ? "bg-accent" : "bg-line2"}`}>
                 <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${wtp[s].on ? "left-[22px]" : "left-0.5"}`} />
               </button>
-              <span className="w-20 text-sm capitalize">{s}</span>
+              <span className="w-24 text-sm capitalize">{s === "h2h" ? "head-to-head" : s}</span>
               {wtp[s].on ? (
                 <label className="ml-auto flex items-center gap-2 text-xs text-ink3">
                   pay up to $

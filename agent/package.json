@@ -4,32 +4,23 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@circle-fin/developer-controlled-wallets": "^10.0.0",
     "@longshot/shared": "workspace:*",
-    "openai": "^4.77.0",
-    "viem": "^2.21.0"
+    "tsx": "^4.23.15",
+    "viem": "^2.57.7"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "tsx": "^4.21.0"
+    "@types/node": "^24.19.2"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "circle:register": "tsx --env-file=../.env scripts/register-entity-secret.ts",
-    "wallet:demo": "tsx --env-file=../.env scripts/wallet-demo.ts",
-    "pay:demo": "tsx --env-file=../.env scripts/pay-demo.ts",
-    "broker:demo": "tsx --env-file=../.env scripts/broker-demo.ts",
+    "worker": "tsx --env-file-if-exists=../.env src/worker.ts",
+    "worker:once": "tsx --env-file-if-exists=../.env src/worker.ts --once",
+    "deploy:all": "tsx --env-file=../.env scripts/deploy.ts",
     "template:test": "tsx scripts/template-test.ts",
     "predict:test": "tsx scripts/predict-test.ts",
-    "model:ping": "tsx --env-file=../.env scripts/model-ping.ts",
-    "run:pool": "tsx --env-file=../.env scripts/run-pool.ts",
-    "seed:wallets": "tsx --env-file=../.env scripts/seed-wallets.ts",
-    "seed:onchain": "tsx --env-file=../.env scripts/seed-onchain.ts",
-    "live:predict": "tsx --env-file=../.env scripts/live-predict.ts",
-    "dcw:buy": "tsx --env-file=../.env scripts/dcw-buy.ts",
-    "seed:finalize": "tsx --env-file=../.env scripts/seed-finalize.ts",
-    "market:research": "tsx --env-file=../.env scripts/marketplace-research.ts"
+    "stats:test": "tsx scripts/stats-test.ts",
+    "model:ping": "tsx --env-file-if-exists=../.env scripts/model-ping.ts"
   }
 }

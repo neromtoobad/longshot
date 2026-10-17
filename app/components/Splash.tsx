@@ -12,12 +12,15 @@ export function Splash() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (sessionStorage.getItem("ls-splash")) return;
-    sessionStorage.setItem("ls-splash", "1");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setShow(true);
     const t1 = setTimeout(() => setLeaving(true), 2300);
-    const t2 = setTimeout(() => setShow(false), 3050);
+    // Mark as seen only once it has played, so a re-run effect (React strict mode) still hides it.
+    const t2 = setTimeout(() => {
+      sessionStorage.setItem("ls-splash", "1");
+      setShow(false);
+    }, 3050);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);

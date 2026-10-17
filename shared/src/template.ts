@@ -6,8 +6,9 @@
 import { keccak256, toBytes } from "viem";
 import type { Bytes32, EvidenceSource, RiskAppetite, UsdcBaseUnits } from "./types.js";
 
-export const EVIDENCE_SOURCES: EvidenceSource[] = ["form", "odds", "injuries", "h2h"];
-export const DEFAULT_MODEL = "qwen3-235b-a22b-instruct-2507";
+export const EVIDENCE_SOURCES: EvidenceSource[] = ["form", "odds", "table", "h2h"];
+/** Empty = use the runtime default (MODEL_NAME env, or the built-in statistical model with no key). */
+export const DEFAULT_MODEL = "";
 
 export interface AgentTemplate {
   name: string;
@@ -22,7 +23,8 @@ export interface AgentTemplate {
     /** Max it will pay per source (USDC base units). Missing or "0" = never buy that source. */
     willingnessToPay: Partial<Record<EvidenceSource, UsdcBaseUnits>>;
   };
-  modelProvider: "venice";
+  /** "default" = whatever OpenAI-compatible endpoint the runtime is configured with. */
+  modelProvider: "default";
   model?: string;
   /** Total data budget for the agent (USDC base units). */
   budget: UsdcBaseUnits;
@@ -36,7 +38,7 @@ export interface AgentConfig {
   preferBroker: boolean;
   /** Max willingness-to-pay per source, base units; every source present, default 0n. */
   willingnessToPay: Record<EvidenceSource, bigint>;
-  modelProvider: "venice";
+  modelProvider: "default";
   model: string;
   budget: bigint;
   templateHash: Bytes32;
@@ -84,8 +86,8 @@ export function compileTemplate(template: AgentTemplate): AgentConfig {
   if (!["low", "medium", "high"].includes(template.riskAppetite)) {
     issues.push(`riskAppetite must be low|medium|high, got "${template.riskAppetite}"`);
   }
-  if (template.modelProvider !== "venice") {
-    issues.push(`modelProvider must be "venice", got "${template.modelProvider}"`);
+  if (template.modelProvider !== "default") {
+    issues.push(`modelProvider must be "default", got "${template.modelProvider}"`);
   }
 
   const budget = parseAmount("budget", template.budget, issues);
@@ -108,7 +110,7 @@ export function compileTemplate(template: AgentTemplate): AgentConfig {
     riskAppetite: template.riskAppetite,
     preferBroker: Boolean(template.dataPreference?.preferBroker),
     willingnessToPay,
-    modelProvider: "venice",
+    modelProvider: "default",
     model: template.model?.trim() || DEFAULT_MODEL,
     budget,
     templateHash: hashTemplate(template),

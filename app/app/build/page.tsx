@@ -1,26 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { decodeEventLog } from "viem";
+import { decodeEventLog, type Address } from "viem";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
-import { hashTemplate, type AgentTemplate } from "@longshot/shared";
-import { useWallet } from "@/lib/wallet-context";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { COMPETITIONS, hashTemplate, type AgentTemplate, type CompetitionKey } from "@longshot/shared";
 import { Avatar } from "@/components/Avatar";
 import { AVATAR_STYLES, avatarUrl, randomSeed, SEED_POOL } from "@/lib/avatar";
 import { arcChain } from "@/lib/wagmi";
-import {
-  ENTRY_FEE,
-  POOL_ADDRESS,
-  REGISTRY_ADDRESS,
-  USDC_ADDRESS,
-  WORLD_CUP_POOL_ID,
-  poolAbi,
-  registryAbi,
-  usdcAbi,
-} from "@/lib/contracts";
+import { POOL_ADDRESS, REGISTRY_ADDRESS, USDC_ADDRESS, poolAbi, poolConfig, registryAbi, usdcAbi } from "@/lib/contracts";
 
-const SOURCES = ["form", "odds", "injuries", "h2h"] as const;
+const SOURCES = ["form", "odds", "table", "h2h"] as const;
+const SOURCE_LABEL: Record<(typeof SOURCES)[number], string> = { form: "Form", odds: "Odds", table: "Table", h2h: "Head-to-head" };
+const SOURCE_HINT: Record<(typeof SOURCES)[number], string> = {
+  form: "last five results, goals for and against",
+  odds: "bookmaker 1X2 + over/under, vig removed",
+  table: "league position, points per game",
+  h2h: "recent meetings between the two",
+};
+// Agent wallets keep a little USDC back to pay their own Gateway deposit gas.
+const GAS_RESERVE = 50_000n;
 type Source = (typeof SOURCES)[number];
 type Risk = "low" | "medium" | "high";
 type SourceState = { on: boolean; wtp: string };
@@ -38,39 +38,39 @@ type Form = {
 
 const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = [
   {
-    key: "Cheap Contrarian",
-    emoji: "🎲",
-    blurb: "backs underdogs on cheap signals",
-    form: {
-      name: "Cheap Contrarian", avatarStyle: "bottts", avatarSeed: "saber",
-      persona: "A frugal contrarian who backs underdogs when cheap signals disagree with the favorite.",
-      prompt: "Predict the exact score. Favor upsets when the evidence you bought contradicts the market.",
-      risk: "high", budget: "0.03", broker: false,
-      sources: { form: { on: true, wtp: "0.004" }, odds: { on: false, wtp: "0" }, injuries: { on: false, wtp: "0" }, h2h: { on: true, wtp: "0.004" } },
-    },
-  },
-  {
-    key: "Favorite Backer",
+    key: "Market Reader",
     emoji: "📈",
-    blurb: "trusts the market odds",
+    blurb: "trusts the bookmakers",
     form: {
-      name: "Favorite Backer", avatarStyle: "bottts-neutral", avatarSeed: "halo",
-      persona: "A disciplined favorite-backer who trusts the bookmakers above all.",
-      prompt: "Predict the exact score. Weight the market odds heavily; favor the favorite unless the data screams otherwise.",
-      risk: "low", budget: "0.04", broker: true,
-      sources: { form: { on: false, wtp: "0" }, odds: { on: true, wtp: "0.008" }, injuries: { on: true, wtp: "0.004" }, h2h: { on: false, wtp: "0" } },
+      name: "Market Reader", avatarStyle: "bottts-neutral", avatarSeed: "halo",
+      persona: "A disciplined favourite-backer who trusts the market over any story.",
+      prompt: "Predict the exact score. Treat the market's probabilities as the truth; only move off them with a strong reason from the table.",
+      risk: "low", budget: "2", broker: false,
+      sources: { form: { on: false, wtp: "0" }, odds: { on: true, wtp: "0.006" }, table: { on: true, wtp: "0.003" }, h2h: { on: false, wtp: "0" } },
     },
   },
   {
-    key: "Injury Hunter",
-    emoji: "🩹",
-    blurb: "weights availability + form",
+    key: "Form Sniper",
+    emoji: "🎯",
+    blurb: "recent form, dead cheap",
     form: {
-      name: "Injury Hunter", avatarStyle: "bottts", avatarSeed: "krait",
-      persona: "An injury-news specialist who values team availability and recent form over market odds.",
-      prompt: "Predict the exact score. Heavily weight injuries/availability and recent form.",
-      risk: "medium", budget: "0.03", broker: false,
-      sources: { form: { on: true, wtp: "0.005" }, odds: { on: false, wtp: "0" }, injuries: { on: true, wtp: "0.005" }, h2h: { on: true, wtp: "0.003" } },
+      name: "Form Sniper", avatarStyle: "pixel-art", avatarSeed: "ion",
+      persona: "A specialist who reads recent form only and refuses to overpay for noise.",
+      prompt: "Predict the exact score from each side's last five matches. Ignore reputations and the market.",
+      risk: "medium", budget: "1", broker: false,
+      sources: { form: { on: true, wtp: "0.005" }, odds: { on: false, wtp: "0" }, table: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
+    },
+  },
+  {
+    key: "Upset Hunter",
+    emoji: "🎲",
+    blurb: "backs the longshot",
+    form: {
+      name: "Upset Hunter", avatarStyle: "bottts", avatarSeed: "saber",
+      persona: "A contrarian who hunts upsets when the cheap signals disagree with the favourite.",
+      prompt: "Predict the exact score. When form and history contradict the table, back the underdog.",
+      risk: "high", budget: "1", broker: true,
+      sources: { form: { on: true, wtp: "0.004" }, odds: { on: false, wtp: "0" }, table: { on: true, wtp: "0.003" }, h2h: { on: true, wtp: "0.003" } },
     },
   },
   {
@@ -79,22 +79,22 @@ const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = 
     blurb: "buys everything, every match",
     form: {
       name: "Data Maximalist", avatarStyle: "bottts-neutral", avatarSeed: "pulse",
-      persona: "A data maximalist who buys every available signal and synthesizes them all.",
+      persona: "A data maximalist who buys every signal and weighs them all.",
       prompt: "Predict the exact score using every piece of evidence you bought. Be decisive.",
-      risk: "high", budget: "0.1", broker: true,
-      sources: { form: { on: true, wtp: "0.006" }, odds: { on: true, wtp: "0.008" }, injuries: { on: true, wtp: "0.006" }, h2h: { on: true, wtp: "0.006" } },
+      risk: "high", budget: "3", broker: true,
+      sources: { form: { on: true, wtp: "0.006" }, odds: { on: true, wtp: "0.006" }, table: { on: true, wtp: "0.004" }, h2h: { on: true, wtp: "0.004" } },
     },
   },
   {
-    key: "Form Sniper",
-    emoji: "🎯",
-    blurb: "one signal, dead cheap",
+    key: "Table Climber",
+    emoji: "🪜",
+    blurb: "the table never lies",
     form: {
-      name: "Form Sniper", avatarStyle: "pixel-art", avatarSeed: "ion",
-      persona: "A specialist sniper who reads recent form only and refuses to overpay for noise.",
-      prompt: "Predict the exact score from recent form alone. Be precise, ignore the market.",
-      risk: "medium", budget: "0.02", broker: false,
-      sources: { form: { on: true, wtp: "0.005" }, odds: { on: false, wtp: "0" }, injuries: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
+      name: "Table Climber", avatarStyle: "thumbs", avatarSeed: "lux",
+      persona: "A season-long thinker who trusts points per game over one-off results.",
+      prompt: "Predict the exact score from the league table. The better side over the season usually wins.",
+      risk: "low", budget: "0.5", broker: false,
+      sources: { form: { on: false, wtp: "0" }, odds: { on: false, wtp: "0" }, table: { on: true, wtp: "0.003" }, h2h: { on: false, wtp: "0" } },
     },
   },
   {
@@ -103,10 +103,10 @@ const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = 
     blurb: "buys nothing, rides on gut",
     form: {
       name: "Coinflip Kid", avatarStyle: "fun-emoji", avatarSeed: "nova",
-      persona: "A reckless gambler who buys no data and predicts on pure instinct, chasing infinite ROI.",
-      prompt: "Predict the exact score from your prior alone. Be bold and back the upset.",
-      risk: "high", budget: "0.01", broker: false,
-      sources: { form: { on: false, wtp: "0" }, odds: { on: false, wtp: "0" }, injuries: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
+      persona: "A reckless gambler who buys no data and predicts on instinct, chasing infinite ROI.",
+      prompt: "Predict the exact score from your prior alone. Be bold.",
+      risk: "high", budget: "0", broker: false,
+      sources: { form: { on: false, wtp: "0" }, odds: { on: false, wtp: "0" }, table: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
     },
   },
 ];
@@ -120,6 +120,7 @@ function toBaseUnits(v: string): string {
   return String(Math.round(n * 1_000_000));
 }
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+const usdcStr = (v: bigint) => (Number(v) / 1_000_000).toFixed(2).replace(/\.?0+$/, "") || "0";
 
 // ── gamified card maths: turn a strategy into FIFA-style stats + an overall rating + a rarity ──
 type Rarity = "bronze" | "silver" | "gold" | "icon";
@@ -128,7 +129,7 @@ function computeCard(f: Form) {
   const AGG = f.risk === "high" ? 94 : f.risk === "medium" ? 73 : 52; // aggression
   const INT = on.length === 0 ? 24 : clamp(Math.round((on.length / SOURCES.length) * 99), 45, 99); // intel / coverage
   const budgetNum = parseFloat(f.budget) || 0;
-  const PWR = clamp(Math.round((budgetNum / 0.2) * 99), 12, 99); // firepower / budget
+  const PWR = clamp(Math.round((budgetNum / 3) * 99), 12, 99); // firepower / budget
   const avgWtp = on.length ? on.reduce((s, x) => s + (parseFloat(f.sources[x].wtp) || 0), 0) / on.length : 0;
   const VAL = avgWtp > 0 ? clamp(Math.round(100 - (avgWtp / 0.008) * 78), 22, 99) : 88; // value / thrift (cheaper = higher; buys nothing = thrifty)
   const NET = f.broker ? 90 : 64; // network (broker depth)
@@ -151,7 +152,7 @@ const RARITY: Record<Rarity, { label: string; bg: string; ring: string; ink: str
   bronze: { label: "BRONZE", bg: "linear-gradient(155deg,#412d1c 0%,#211710 90%)", ring: "#c47b43", ink: "#f0d2b4", chip: "rgba(196,123,67,.2)" },
 };
 
-type Step = "idle" | "register" | "approve" | "join" | "save" | "done";
+type Step = "idle" | "wallet" | "register" | "approve" | "join" | "fund" | "save" | "done";
 
 function Segmented<T extends string>({
   value, options, onChange,
@@ -246,16 +247,25 @@ export default function BuildPage() {
   const [pool, setPool] = useState<string[]>(() => SEED_POOL.slice(0, 11));
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ agentId: string; joinTx: string } | null>(null);
+  const [result, setResult] = useState<{ agentId: string; onChainId: string; joinTx: string; wallet: string } | null>(null);
+  const [league, setLeague] = useState<CompetitionKey>("epl");
 
-  const { address, isConnected, walletType, executeCircleCall } = useWallet();
-  const { chainId } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
+  const { openConnectModal } = useConnectModal();
   const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
-  // Circle smart accounts are always on Arc; MetaMask must be switched to it.
-  const onArc = walletType === "circle" || chainId === arcChain.id;
-  const isCircle = walletType === "circle";
+  const publicClient = usePublicClient({ chainId: arcChain.id });
+  const onArc = chainId === arcChain.id;
+  const poolCfg = poolConfig(league);
+  const comp = COMPETITIONS.find((c) => c.key === league)!;
+  const entryFee = poolCfg?.entryFee ?? 0n;
+  const fundAmount = BigInt(toBaseUnits(f.budget)) > 0n ? BigInt(toBaseUnits(f.budget)) + GAS_RESERVE : 0n;
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("league");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (q && COMPETITIONS.some((c) => c.key === q)) setLeague(q as CompetitionKey);
+  }, []);
 
   const set = (patch: Partial<Form>) => setF((prev) => ({ ...prev, ...patch }));
   const setSource = (s: Source, patch: Partial<SourceState>) =>
@@ -283,84 +293,31 @@ export default function BuildPage() {
         preferBroker: f.broker,
         willingnessToPay: Object.fromEntries(SOURCES.map((s) => [s, f.sources[s].on ? toBaseUnits(f.sources[s].wtp) : "0"])),
       },
-      modelProvider: "venice",
+      modelProvider: "default",
       budget: toBaseUnits(f.budget),
     };
   }
 
   async function create() {
-    if (!isConnected || !address || !publicClient) return;
+    if (!isConnected || !address || !publicClient || !poolCfg) return;
     const owner = address;
     const client = publicClient;
     setError(null);
-
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    async function pollNewAgent(prevLen: number): Promise<bigint> {
-      for (let i = 0; i < 40; i++) {
-        const ids = (await client.readContract({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "agentsByOwner", args: [owner] })) as readonly bigint[];
-        if (ids.length > prevLen) return ids[ids.length - 1];
-        await sleep(2000);
-      }
-      throw new Error("registration not confirmed on-chain yet — check your wallet and retry");
-    }
-    async function pollJoined(agentId: bigint): Promise<void> {
-      for (let i = 0; i < 40; i++) {
-        const ok = await client.readContract({ address: POOL_ADDRESS, abi: poolAbi, functionName: "joined", args: [WORLD_CUP_POOL_ID, agentId] });
-        if (ok) return;
-        await sleep(2000);
-      }
-      throw new Error("pool entry not confirmed on-chain yet");
-    }
-    async function persist(agentId: bigint) {
-      setStep("save");
-      await fetch("/api/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: f.name,
-          persona: f.persona,
-          prompt: f.prompt,
-          riskAppetite: f.risk,
-          preferBroker: f.broker,
-          budget: toBaseUnits(f.budget),
-          willingnessToPay: Object.fromEntries(SOURCES.map((s) => [s, f.sources[s].on ? toBaseUnits(f.sources[s].wtp) : "0"])),
-          avatar: { style: f.avatarStyle, seed: f.avatarSeed },
-          poolId: "1",
-          owner,
-          onChainAgentId: agentId.toString(),
-        }),
-      });
-    }
 
     try {
       const template = buildTemplate();
       const templateHash = hashTemplate(template);
 
-      if (isCircle) {
-        // ── Circle User-Controlled Wallet: register/approve/join are each PIN-approved challenges in
-        //    Circle's hosted UI. We confirm each effect by reading Arc directly (no tx hash needed). ──
-        const prev = (await client.readContract({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "agentsByOwner", args: [owner] })) as readonly bigint[];
+      // 1. A fresh wallet for the agent (key generated + encrypted server-side).
+      setStep("wallet");
+      const w = await fetch("/api/wallets", { method: "POST" });
+      const wj = (await w.json()) as { address?: string; error?: string };
+      if (!w.ok || !wj.address) throw new Error(wj.error ?? "could not create agent wallet");
+      const agentWallet = wj.address as Address;
 
-        setStep("register");
-        await executeCircleCall({ contractAddress: REGISTRY_ADDRESS, abiFunctionSignature: "registerAgent(string,bytes32,address)", abiParameters: [template.name, templateHash, owner] });
-        const agentId = await pollNewAgent(prev.length);
-
-        setStep("approve");
-        await executeCircleCall({ contractAddress: USDC_ADDRESS, abiFunctionSignature: "approve(address,uint256)", abiParameters: [POOL_ADDRESS, ENTRY_FEE.toString()] });
-
-        setStep("join");
-        await executeCircleCall({ contractAddress: POOL_ADDRESS, abiFunctionSignature: "join(uint256,uint256)", abiParameters: [WORLD_CUP_POOL_ID.toString(), agentId.toString()] });
-        await pollJoined(agentId);
-
-        await persist(agentId);
-        setStep("done");
-        setResult({ agentId: agentId.toString(), joinTx: "" });
-        return;
-      }
-
-      // ── MetaMask: standard txs; decode the agentId from the register receipt. ──
+      // 2. Register on-chain; the agentId comes from the AgentRegistered event.
       setStep("register");
-      const regTxHash = await writeContractAsync({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "registerAgent", args: [template.name, templateHash, owner] });
+      const regTxHash = await writeContractAsync({ address: REGISTRY_ADDRESS, abi: registryAbi, functionName: "registerAgent", args: [template.name, templateHash, agentWallet] });
       const regRcpt = await client.waitForTransactionReceipt({ hash: regTxHash });
       let agentId: bigint | undefined;
       for (const log of regRcpt.logs) {
@@ -376,19 +333,50 @@ export default function BuildPage() {
       }
       if (agentId === undefined) throw new Error("could not read agentId from registration");
 
-      setStep("approve");
-      const apprTx = await writeContractAsync({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "approve", args: [POOL_ADDRESS, ENTRY_FEE] });
-      await client.waitForTransactionReceipt({ hash: apprTx });
-
+      // 3-4. Approve + pay the entry into the league's prize pool.
+      if (entryFee > 0n) {
+        setStep("approve");
+        const apprTx = await writeContractAsync({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "approve", args: [POOL_ADDRESS, entryFee] });
+        await client.waitForTransactionReceipt({ hash: apprTx });
+      }
       setStep("join");
-      const joinTx = await writeContractAsync({ address: POOL_ADDRESS, abi: poolAbi, functionName: "join", args: [WORLD_CUP_POOL_ID, agentId] });
+      const joinTx = await writeContractAsync({ address: POOL_ADDRESS, abi: poolAbi, functionName: "join", args: [poolCfg.poolId, agentId] });
       await client.waitForTransactionReceipt({ hash: joinTx });
 
-      await persist(agentId);
+      // 5. Fund the agent's own wallet with its data budget. The worker moves it into Gateway.
+      if (fundAmount > 0n) {
+        setStep("fund");
+        const fundTx = await writeContractAsync({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "transfer", args: [agentWallet, fundAmount] });
+        await client.waitForTransactionReceipt({ hash: fundTx });
+      }
+
+      setStep("save");
+      const res = await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: f.name,
+          persona: f.persona,
+          prompt: f.prompt,
+          riskAppetite: f.risk,
+          preferBroker: f.broker,
+          budget: toBaseUnits(f.budget),
+          willingnessToPay: Object.fromEntries(SOURCES.map((s) => [s, f.sources[s].on ? toBaseUnits(f.sources[s].wtp) : "0"])),
+          avatar: { style: f.avatarStyle, seed: f.avatarSeed },
+          league,
+          owner,
+          walletAddress: agentWallet,
+          onChainAgentId: agentId.toString(),
+        }),
+      });
+      const saved = (await res.json()) as { agentId?: string; error?: string };
+      if (!res.ok || !saved.agentId) throw new Error(saved.error ?? "could not save agent");
+
       setStep("done");
-      setResult({ agentId: agentId.toString(), joinTx });
+      setResult({ agentId: saved.agentId, onChainId: agentId.toString(), joinTx, wallet: agentWallet });
     } catch (e) {
-      setError(e instanceof Error ? e.message.slice(0, 180) : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(/rejected|denied/i.test(msg) ? "You rejected the transaction in your wallet." : msg.split("\n")[0].slice(0, 200));
       setStep("idle");
     }
   }
@@ -401,16 +389,17 @@ export default function BuildPage() {
           <AgentCard f={f} />
           <div>
             <p className="text-sm text-ink2">
-              <span className="text-ink">{f.name}</span> is agent #{result.agentId} — you paid the 1 USDC entry from your wallet and own it on-chain.
+              <span className="text-ink">{f.name}</span> is agent #{result.onChainId} in the {comp.name} pool. You own it on-chain, and it
+              will start predicting the next {comp.short} fixtures within the next few minutes.
             </p>
-            {result.joinTx ? (
-              <div className="mono mt-2 break-all text-[11px] text-accent2">{result.joinTx}</div>
-            ) : (
-              <div className="mono mt-2 text-[11px] text-accent2">PIN-approved · entry confirmed on Arc</div>
-            )}
-            <div className="mt-5 flex gap-3">
+            <div className="mono mt-3 text-[10px] uppercase tracking-wider text-ink3">agent wallet</div>
+            <div className="mono break-all text-[11px] text-accent2">{result.wallet}</div>
+            <a href={`${arcChain.blockExplorers.default.url}/tx/${result.joinTx}`} target="_blank" rel="noreferrer" className="mono mt-2 block text-[11px] text-ink2 underline-offset-2 hover:underline">
+              entry tx ↗
+            </a>
+            <div className="mt-5 flex flex-wrap gap-3">
               <Link href={`/agent/${result.agentId}`} className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white">View agent</Link>
-              <Link href="/leaderboard" className="rounded-xl border border-line2 px-4 py-2 text-sm text-ink hover:bg-surface">Leaderboard</Link>
+              <Link href={`/pool?league=${league}`} className="rounded-xl border border-line2 px-4 py-2 text-sm text-ink hover:bg-surface">{comp.short} fixtures</Link>
             </div>
           </div>
         </div>
@@ -420,10 +409,12 @@ export default function BuildPage() {
 
   const busy = step !== "idle";
   const stepLabel: Record<Step, string> = {
-    idle: isCircle ? "Mint + drop in pool · approve with PIN" : "Mint + drop in pool · 1 USDC entry",
+    idle: `Mint + enter ${comp.short} · ${usdcStr(entryFee + fundAmount)} USDC`,
+    wallet: "creating agent wallet…",
     register: "registering agent…",
-    approve: "approving USDC…",
+    approve: "approving entry…",
     join: "paying entry…",
+    fund: "funding agent wallet…",
     save: "finishing…",
     done: "done",
   };
@@ -431,7 +422,7 @@ export default function BuildPage() {
   return (
     <div>
       <h1 className="text-3xl font-extrabold tracking-tight">Build an agent</h1>
-      <p className="mt-1 text-sm text-ink2">Pick a playstyle, give it a face, tune its stats, and drop it in the pool from your wallet.</p>
+      <p className="mt-1 text-sm text-ink2">Pick a league and a playstyle, give it a face, tune what it pays for, and enter it from your wallet.</p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         {/* ── form ── */}
@@ -522,18 +513,29 @@ export default function BuildPage() {
               </div>
               <p className="mt-1.5 text-[11px] text-ink3">Higher risk buys evidence more readily; lower risk only buys clear value.</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div>
               <div>
                 <div className={lbl}>data sourcing</div>
                 <div className="mt-1.5">
                   <Segmented value={f.broker ? "broker" : "direct"} onChange={(v) => set({ broker: v === "broker" })} options={[{ v: "direct", label: "direct" }, { v: "broker", label: "broker" }]} />
                 </div>
               </div>
-              <div>
-                <div className={lbl}>pool</div>
-                <div className="mt-1.5">
-                  <Segmented value="wc" onChange={() => {}} options={[{ v: "wc", label: "World Cup" }, { v: "soon", label: "more soon", disabled: true }]} />
-                </div>
+            </div>
+            <div>
+              <div className={lbl}>league</div>
+              <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {COMPETITIONS.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setLeague(c.key)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${league === c.key ? "border-accent bg-accent/10 font-semibold" : "border-line bg-surface2 text-ink2 hover:text-ink"}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.logo} alt="" className="h-5 w-5 object-contain" />
+                    <span className="truncate">{c.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -548,7 +550,10 @@ export default function BuildPage() {
               {SOURCES.map((s) => (
                 <div key={s} className="flex items-center gap-3 rounded-xl border border-line bg-surface2 px-3 py-2">
                   <Toggle on={f.sources[s].on} onChange={(on) => setSource(s, { on })} />
-                  <span className="w-20 text-sm capitalize">{s}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm">{SOURCE_LABEL[s]}</span>
+                    <span className="hidden text-[11px] text-ink3 sm:block">{SOURCE_HINT[s]}</span>
+                  </span>
                   {f.sources[s].on ? (
                     <label className="ml-auto flex items-center gap-2 text-xs text-ink3">
                       pay up to $
@@ -568,9 +573,10 @@ export default function BuildPage() {
 
           {/* budget */}
           <div className="glass p-5">
-            <div className={lbl}>data budget (USDC)</div>
+            <div className={lbl}>season data budget (USDC)</div>
+            <p className="mt-1 text-[11px] text-ink3">A full season is roughly 380 league matches. At a few tenths of a cent per signal, 1-3 USDC covers it.</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {["0.02", "0.05", "0.1", "0.2"].map((b) => (
+              {["0", "0.5", "1", "2", "3"].map((b) => (
                 <button
                   key={b}
                   type="button"
@@ -600,7 +606,11 @@ export default function BuildPage() {
 
           {error && <p className="text-sm text-neg">{error}</p>}
           {!isConnected ? (
-            <p className="text-sm text-ink2">Connect a wallet (top right) to mint + drop your agent — a Circle smart wallet (PIN, no seed phrase) or MetaMask.</p>
+            <button type="button" onClick={() => openConnectModal?.()} className="w-full rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:opacity-90">
+              Connect a wallet to mint
+            </button>
+          ) : !poolCfg ? (
+            <p className="text-sm text-gold">Pools aren&apos;t deployed yet. Check back shortly.</p>
           ) : !onArc ? (
             <button type="button" onClick={() => switchChain({ chainId: arcChain.id })} className="rounded-xl border border-gold/50 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold">
               Switch to Arc to continue
@@ -631,13 +641,13 @@ export default function BuildPage() {
           <div className="glass p-5">
             <div className="flex items-center justify-between">
               <div className="font-bold">Minting on Arc</div>
-              {isCircle && <span className="rounded-md bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent2">🔐 PIN</span>}
+              <span className="mono text-[10px] uppercase tracking-wider text-ink3">testnet</span>
             </div>
             <ol className="mt-3 space-y-2.5 text-sm">
               {[
-                ["Register", "your agent on-chain — you own it"],
-                ["Approve", "the 1 USDC entry for the Pool"],
-                ["Pay entry", "escrows it into the prize pool"],
+                ["Register", "your agent on-chain with its own wallet. You own it."],
+                ["Enter", `${usdcStr(entryFee)} USDC into the ${comp.short} prize pool (approve + join)`],
+                ["Fund", fundAmount > 0n ? `${usdcStr(fundAmount)} USDC to the agent's wallet for its data` : "nothing: this agent buys no data"],
               ].map(([t, d], i) => (
                 <li key={t} className="flex gap-3">
                   <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent2">{i + 1}</span>
@@ -646,7 +656,8 @@ export default function BuildPage() {
               ))}
             </ol>
             <p className="mt-3 border-t border-line pt-3 text-[11px] text-ink3">
-              {isCircle ? "Each step is approved with your PIN in Circle's hosted UI — no seed phrase. Your Circle smart wallet needs a little testnet USDC for the entry + gas." : "Signed in your wallet. You pay network gas in USDC."}
+              Signed in your wallet; gas on Arc is paid in USDC. Get free testnet USDC at{" "}
+              <a href="https://faucet.circle.com" target="_blank" rel="noreferrer" className="text-accent2 hover:underline">faucet.circle.com</a>.
             </p>
           </div>
         </div>

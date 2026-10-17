@@ -1,61 +1,117 @@
 // Server data module: joins the runtime store (agents, predictions, purchases, fixtures) with
-// on-chain state + scoring into the views the pages render. Read-only, server-only.
+// on-chain state + scoring into the views the pages render. Read-only, server-only. Everything is
+// keyed by competition ("epl", "ucl", ...); the on-chain pool id comes from addresses.json.
 
-import type { EvidenceSource, Fixture } from "@longshot/shared";
-import { buildLeaderboard, buildScoreRows, scorePrediction, type ScoredEntry } from "@longshot/shared";
+import {
+  COMPETITIONS,
+  buildLeaderboard,
+  buildScoreRows,
+  competition,
+  inSeason,
+  poolFor,
+  scorePrediction,
+  type Competition,
+  type CompetitionKey,
+  type EvidenceSource,
+  type Fixture,
+  type ScoredEntry,
+} from "@longshot/shared";
+import { readJsonFile } from "@longshot/shared/server";
 import { allFixtures } from "./fixtures-store";
-import { readAgents, readPredictions, readPurchases, readSettlements, type StoredAgent } from "./store";
+import { readAgents, readPredictions, readPurchases, readSettlements, type StoredAgent, type StoredPrediction } from "./store";
 import { brokerCatalog, brokerRevenue } from "./broker";
 import { readPoolInfo, type PoolInfo } from "./pool";
+
+/** Resolve a ?league= param to a competition (default: Premier League). */
+export function resolveCompetition(param?: string | string[]): Competition {
+  const key = Array.isArray(param) ? param[0] : param;
+  return competition(key ?? "") ?? COMPETITIONS[0];
+}
+
+export function poolIdOf(c: Competition): string | undefined {
+  const p = poolFor(c.key);
+  return p ? String(p.poolId) : undefined;
+}
+
+function competitionOfAgent(a: StoredAgent): Competition | undefined {
+  return COMPETITIONS.find((c) => poolIdOf(c) === a.poolId);
+}
+
+type Final = Fixture & { homeScore: number; awayScore: number };
+const isFinal = (f: Fixture): f is Final => f.status === "final" && f.homeScore !== null && f.awayScore !== null;
+
+function seasonFixtures(c: Competition): Fixture[] {
+  return allFixtures().filter((f) => f.competition === c.key && inSeason(c, f.kickoff));
+}
+
+function finalsById(): Map<string, Final> {
+  const m = new Map<string, Final>();
+  for (const f of allFixtures()) if (isFinal(f)) m.set(f.id, f);
+  return m;
+}
+
+function pointsFor(p: StoredPrediction, f: Final | undefined): number | null {
+  if (!f) return null;
+  return scorePrediction({ homeScore: p.homeScore, awayScore: p.awayScore }, { homeScore: f.homeScore, awayScore: f.awayScore });
+}
+
+// --- leaderboard -------------------------------------------------------------------
 
 export interface LeaderboardEntry {
   rank: number;
   agentId: string;
   name: string;
   persona: string;
+  house: boolean;
   cumulativeScore: number;
   fixturesScored: number;
+  exact: number;
   spent: string;
   roi: number;
   preferBroker: boolean;
   avatar?: { style: string; seed: string };
+  /** Points over the last 7 days. */
+  week: number;
 }
 
-function finalFixtureMap(poolId: string): Map<string, Fixture> {
-  const map = new Map<string, Fixture>();
-  for (const f of allFixtures()) {
-    if (f.poolId === poolId && f.status === "final" && f.homeScore !== null && f.awayScore !== null) {
-      map.set(f.id, f);
-    }
-  }
-  return map;
-}
-
-export function getLeaderboard(poolId: string): LeaderboardEntry[] {
+export function getLeaderboard(c: Competition): LeaderboardEntry[] {
+  const poolId = poolIdOf(c);
+  if (!poolId) return [];
   const agents = readAgents().filter((a) => a.poolId === poolId);
-  const finals = finalFixtureMap(poolId);
+  const finals = finalsById();
   const predictions = readPredictions().filter((p) => p.poolId === poolId);
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
 
   const entries: ScoredEntry[] = [];
   const spentByAgent: Record<string, bigint> = {};
+  const exact: Record<string, number> = {};
+  const week: Record<string, number> = {};
   for (const a of agents) spentByAgent[a.agentId] = 0n;
 
   for (const p of predictions) {
     spentByAgent[p.agentId] = (spentByAgent[p.agentId] ?? 0n) + BigInt(p.spent);
-    const fixture = finals.get(p.fixtureId);
-    if (!fixture) continue; // only score resolved fixtures
+    const f = finals.get(p.fixtureId);
+    if (!f) continue;
     entries.push({
       agentId: p.agentId,
       fixtureId: p.fixtureId,
       pred: { homeScore: p.homeScore, awayScore: p.awayScore },
-      actual: { homeScore: fixture.homeScore!, awayScore: fixture.awayScore! },
+      actual: { homeScore: f.homeScore, awayScore: f.awayScore },
     });
+    const pts = pointsFor(p, f) ?? 0;
+    if (pts === 5) exact[p.agentId] = (exact[p.agentId] ?? 0) + 1;
+    if (new Date(f.kickoff).getTime() > weekAgo) week[p.agentId] = (week[p.agentId] ?? 0) + pts;
   }
 
-  const rows = buildScoreRows(entries);
-  const board = buildLeaderboard(rows, spentByAgent);
+  const board = buildLeaderboard(buildScoreRows(entries), spentByAgent);
+  // Agents with no scored fixture yet still appear, at the bottom.
+  const seen = new Set(board.map((r) => r.agentId));
+  for (const a of agents) {
+    if (!seen.has(a.agentId)) {
+      board.push({ agentId: a.agentId, cumulativeScore: 0, spent: (spentByAgent[a.agentId] ?? 0n).toString(), roi: 0, fixturesScored: 0 });
+    }
+  }
   const byId = new Map(agents.map((a) => [a.agentId, a]));
-
   return board.map((r, i) => {
     const a = byId.get(r.agentId);
     return {
@@ -63,15 +119,20 @@ export function getLeaderboard(poolId: string): LeaderboardEntry[] {
       agentId: r.agentId,
       name: a?.template.name ?? `Agent ${r.agentId}`,
       persona: a?.template.persona ?? "",
+      house: Boolean(a?.house),
       cumulativeScore: r.cumulativeScore,
       fixturesScored: r.fixturesScored,
+      exact: exact[r.agentId] ?? 0,
       spent: r.spent,
       roi: r.roi,
       preferBroker: a?.template.dataPreference.preferBroker ?? false,
       avatar: a?.avatar,
+      week: week[r.agentId] ?? 0,
     };
   });
 }
+
+// --- stats (all leagues) ------------------------------------------------------------
 
 export interface PoolStats {
   agentsRegistered: number;
@@ -83,133 +144,144 @@ export interface PoolStats {
   budgetUtilization: number;
   costPerTask: string;
   correctPredictions: number;
+  scoredPredictions: number;
   broker: ReturnType<typeof brokerRevenue>;
+  bySource: { source: EvidenceSource; count: number; spent: string }[];
 }
 
-export function getStats(poolId: string): PoolStats {
-  const agents = readAgents().filter((a) => a.poolId === poolId);
-  const predictions = readPredictions().filter((p) => p.poolId === poolId);
-  const purchases = readPurchases().filter((p) => agents.some((a) => a.agentId === p.agentId));
+export function getStats(): PoolStats {
+  const agents = readAgents();
+  const predictions = readPredictions();
+  const purchases = readPurchases();
+  const finals = finalsById();
 
   const totalSpent = purchases.reduce((s, p) => s + BigInt(p.priceUSDC), 0n);
   const allocated = agents.reduce((s, a) => s + BigInt(a.template.budget), 0n);
-
-  // Cost per task = data spent / correct predictions (a prediction that scored any points).
-  const finals = finalFixtureMap(poolId);
   let correct = 0;
+  let scored = 0;
   for (const p of predictions) {
-    const f = finals.get(p.fixtureId);
-    if (f && scorePrediction({ homeScore: p.homeScore, awayScore: p.awayScore }, { homeScore: f.homeScore!, awayScore: f.awayScore! }) > 0) {
-      correct++;
-    }
+    const pts = pointsFor(p, finals.get(p.fixtureId));
+    if (pts === null) continue;
+    scored++;
+    if (pts > 0) correct++;
   }
-  const costPerTask = correct > 0 ? totalSpent / BigInt(correct) : 0n;
-  const avgTx = purchases.length > 0 ? totalSpent / BigInt(purchases.length) : 0n;
+  const bySource = (["form", "odds", "table", "h2h"] as EvidenceSource[]).map((source) => {
+    const mine = purchases.filter((p) => p.source === source);
+    return { source, count: mine.length, spent: mine.reduce((s, p) => s + BigInt(p.priceUSDC), 0n).toString() };
+  });
 
   return {
     agentsRegistered: agents.length,
-    uniqueOwners: new Set(agents.map((a) => a.owner.toLowerCase())).size,
+    uniqueOwners: new Set(agents.filter((a) => !a.house).map((a) => a.owner.toLowerCase())).size,
     predictionsMade: predictions.length,
     totalPayments: purchases.length,
     totalDataSpent: totalSpent.toString(),
-    avgTxSize: avgTx.toString(),
+    avgTxSize: (purchases.length ? totalSpent / BigInt(purchases.length) : 0n).toString(),
     budgetUtilization: allocated > 0n ? Number(totalSpent) / Number(allocated) : 0,
-    costPerTask: costPerTask.toString(),
+    costPerTask: (correct > 0 ? totalSpent / BigInt(correct) : 0n).toString(),
     correctPredictions: correct,
+    scoredPredictions: scored,
     broker: brokerRevenue(),
+    bySource,
   };
 }
+
+// --- activity ticker ---------------------------------------------------------------
 
 export interface ActivityItem {
   kind: "buy" | "predict";
   agentId: string;
   agentName: string;
+  league: string;
   avatar?: { style: string; seed: string };
   text: string;
   detail: string;
   at: string;
 }
 
-/** Recent autonomous activity (evidence buys + predictions) for the home ticker. Newest first. */
-export function getActivity(poolId: string, limit = 24): ActivityItem[] {
-  const agents = readAgents().filter((a) => a.poolId === poolId);
-  const byId = new Map(agents.map((a) => [a.agentId, a]));
-  const fixtures = new Map(allFixtures().filter((f) => f.poolId === poolId).map((f) => [f.id, f]));
+/** Recent autonomous activity (evidence buys + predictions) across all leagues. Newest first. */
+export function getActivity(limit = 24): ActivityItem[] {
+  const agents = new Map(readAgents().map((a) => [a.agentId, a]));
+  const fixtures = new Map(allFixtures().map((f) => [f.id, f]));
   const items: ActivityItem[] = [];
+  const league = (a: StoredAgent) => competitionOfAgent(a)?.short ?? "";
 
-  for (const p of readPurchases()) {
-    const a = byId.get(p.agentId);
+  for (const p of readPurchases().slice(-200)) {
+    const a = agents.get(p.agentId);
     if (!a) continue;
     items.push({
       kind: "buy",
       agentId: p.agentId,
       agentName: a.template.name,
+      league: league(a),
       avatar: a.avatar,
       text: `bought ${p.source}`,
-      detail: `$${(Number(BigInt(p.priceUSDC)) / 1_000_000).toFixed(4)}`,
+      detail: `$${(Number(BigInt(p.priceUSDC)) / 1_000_000).toFixed(3)}`,
       at: p.createdAt,
     });
   }
-
-  for (const p of readPredictions().filter((p) => p.poolId === poolId)) {
-    const a = byId.get(p.agentId);
+  for (const p of readPredictions().slice(-200)) {
+    const a = agents.get(p.agentId);
     if (!a) continue;
     const fx = fixtures.get(p.fixtureId);
-    const matchup = fx ? `${fx.home} ${p.homeScore}–${p.awayScore} ${fx.away}` : `${p.homeScore}–${p.awayScore}`;
     items.push({
       kind: "predict",
       agentId: p.agentId,
       agentName: a.template.name,
+      league: league(a),
       avatar: a.avatar,
       text: "predicted",
-      detail: matchup,
+      detail: fx ? `${fx.home} ${p.homeScore}–${p.awayScore} ${fx.away}` : `${p.homeScore}–${p.awayScore}`,
       at: p.createdAt,
     });
   }
-
-  return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, limit);
+  return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }
 
-/** The agent-to-agent payment network (RFB 3): which agents route through the broker, the broker's
- *  per-source markup catalog, and realized sales — for the network visualization. */
-export function getBrokerNetwork(poolId: string) {
-  const agents = readAgents().filter((a) => a.poolId === poolId);
+/** The agent-to-agent payment network: which agents route through the broker, its catalog, sales. */
+export function getBrokerNetwork() {
+  const agents = readAgents();
   const catalog = brokerCatalog();
-  const revenue = brokerRevenue();
+  const brief = (a: StoredAgent) => ({ id: a.agentId, name: a.template.name, avatar: a.avatar });
   return {
     markupBps: catalog.markupBps,
-    brokerAgents: agents.filter((a) => a.template.dataPreference.preferBroker).map((a) => ({ id: a.agentId, name: a.template.name, avatar: a.avatar })),
-    directAgents: agents.filter((a) => !a.template.dataPreference.preferBroker).map((a) => ({ id: a.agentId, name: a.template.name, avatar: a.avatar })),
-    catalog: catalog.sources, // {source, basePriceUSDC, markupUSDC, brokerPriceUSDC, reputation}
-    revenue, // {totalSales, totalRevenueUSDC, totalPassthroughUSDC, bySource, paymentChainDepth}
+    brokerAgents: agents.filter((a) => a.template.dataPreference.preferBroker).map(brief),
+    directAgents: agents.filter((a) => !a.template.dataPreference.preferBroker).map(brief),
+    catalog: catalog.sources,
+    revenue: brokerRevenue(),
   };
 }
+
+// --- my agents -----------------------------------------------------------------------
 
 export interface MyAgent {
   agentId: string;
   name: string;
+  league: string;
+  leagueKey?: CompetitionKey;
   avatar?: { style: string; seed: string };
   onChainAgentId?: string;
+  walletAddress: string;
   riskAppetite: string;
   preferBroker: boolean;
-  budgetUSDC: string; // base units
+  budgetUSDC: string;
   willingnessToPay: Partial<Record<EvidenceSource, string>>;
   persona: string;
   prompt: string;
   score: number;
   fixturesScored: number;
   predictions: number;
-  spent: string; // base units
+  spent: string;
   roi: number;
-  provisioned: boolean; // has a runnable data wallet
+  provisioned: boolean;
 }
 
-/** The connected owner's agents with live progress + their editable strategy (for the My Agents page). */
-export function getMyAgents(owner: string, poolId = "1"): MyAgent[] {
+/** The connected owner's agents across every league, with live progress + editable strategy. */
+export function getMyAgents(owner: string): MyAgent[] {
   const lower = owner.toLowerCase();
-  const agents = readAgents().filter((a) => a.poolId === poolId && (a.owner || "").toLowerCase() === lower);
-  const finals = finalFixtureMap(poolId);
-  const preds = readPredictions().filter((p) => p.poolId === poolId);
+  const agents = readAgents().filter((a) => !a.house && (a.owner || "").toLowerCase() === lower);
+  const finals = finalsById();
+  const preds = readPredictions();
   const purchases = readPurchases();
 
   return agents.map((a) => {
@@ -217,19 +289,23 @@ export function getMyAgents(owner: string, poolId = "1"): MyAgent[] {
     let score = 0;
     let scored = 0;
     for (const p of mine) {
-      const f = finals.get(p.fixtureId);
-      if (f) {
-        score += scorePrediction({ homeScore: p.homeScore, awayScore: p.awayScore }, { homeScore: f.homeScore!, awayScore: f.awayScore! });
-        scored += 1;
+      const pts = pointsFor(p, finals.get(p.fixtureId));
+      if (pts !== null) {
+        score += pts;
+        scored++;
       }
     }
     const spent = purchases.filter((p) => p.agentId === a.agentId).reduce((s, p) => s + BigInt(p.priceUSDC), 0n);
     const roi = spent > 0n ? score / (Number(spent) / 1_000_000) : score > 0 ? Infinity : 0;
+    const comp = competitionOfAgent(a);
     return {
       agentId: a.agentId,
       name: a.template.name,
+      league: comp?.name ?? "",
+      leagueKey: comp?.key,
       avatar: a.avatar,
       onChainAgentId: a.onChainAgentId,
+      walletAddress: a.walletAddress,
       riskAppetite: a.template.riskAppetite,
       preferBroker: a.template.dataPreference.preferBroker,
       budgetUSDC: a.template.budget,
@@ -245,6 +321,8 @@ export function getMyAgents(owner: string, poolId = "1"): MyAgent[] {
     };
   });
 }
+
+// --- settlements ---------------------------------------------------------------------
 
 export interface SettlementTrace {
   uuid: string;
@@ -265,60 +343,172 @@ export interface SettlementSummary {
   rows: SettlementTrace[];
 }
 
-/** Reconciled x402 settlements joined with the agent + source that paid them (for the proof panel). */
-export function getSettlements(poolId: string, limit = 12): SettlementSummary {
-  const settlements = readSettlements();
-  const agents = readAgents().filter((a) => a.poolId === poolId);
-  const byId = new Map(agents.map((a) => [a.agentId, a]));
-  // Map a settlement UUID -> the purchase that produced it (agent + source).
-  const purchaseByUuid = new Map(readPurchases().map((p) => [p.settlementUuid, p]));
-
-  const rows: SettlementTrace[] = settlements.map((s) => {
-    const purchase = purchaseByUuid.get(s.uuid);
-    const agent = purchase ? byId.get(purchase.agentId) : undefined;
+/** Recent x402 purchases with their Gateway settlement receipts (for the proof panel). */
+export function getSettlements(limit = 12): SettlementSummary {
+  const reconciled = new Map(readSettlements().map((s) => [s.uuid, s]));
+  const agents = new Map(readAgents().map((a) => [a.agentId, a]));
+  const purchases = readPurchases().filter((p) => p.settlementUuid).slice(-limit).reverse();
+  const rows: SettlementTrace[] = purchases.map((p) => {
+    const s = reconciled.get(p.settlementUuid);
     return {
-      uuid: s.uuid,
-      status: s.status,
-      agentName: agent?.template.name ?? "agent",
-      source: purchase?.source ?? "evidence",
-      fromAddress: s.fromAddress,
-      toAddress: s.toAddress,
-      amountUSDC: s.amount,
-      onArc: (s.network ?? "").includes("5042002"),
-      settledAt: s.settledAt,
-      batchTxHash: s.batchTxHash,
+      uuid: p.settlementUuid,
+      status: s?.status ?? "accepted",
+      agentName: agents.get(p.agentId)?.template.name ?? "agent",
+      source: p.source,
+      fromAddress: s?.fromAddress ?? agents.get(p.agentId)?.walletAddress ?? null,
+      toAddress: s?.toAddress ?? null,
+      amountUSDC: s?.amount ?? p.priceUSDC, // atomic units
+      onArc: true,
+      settledAt: s?.settledAt ?? p.createdAt,
+      batchTxHash: s?.batchTxHash ?? p.batchTxHash,
     };
   });
+  const total = readPurchases().filter((p) => p.settlementUuid).length;
+  return { total, completed: [...reconciled.values()].filter((s) => s.status === "completed").length, rows };
+}
 
-  return {
-    total: settlements.length,
-    completed: settlements.filter((s) => s.status === "completed" || s.status === "confirmed").length,
-    rows: rows.filter((r) => purchaseByUuid.has(r.uuid)).slice(0, limit),
-  };
+// --- pool view -----------------------------------------------------------------------
+
+export interface FixturePick {
+  agentId: string;
+  name: string;
+  avatar?: { style: string; seed: string };
+  homeScore: number;
+  awayScore: number;
+  confidence: number;
+  points: number | null;
+  bought: EvidenceSource[];
+}
+
+export interface FixtureRow extends Fixture {
+  picks: FixturePick[];
 }
 
 export interface PoolView {
-  poolId: string;
+  competition: Competition;
+  poolId?: string;
   info: PoolInfo | null;
   entrants: StoredAgent[];
-  fixtures: { upcoming: Fixture[]; final: Fixture[] };
-  error?: string;
+  upcoming: FixtureRow[];
+  results: FixtureRow[];
+  live: FixtureRow[];
 }
 
-export async function getPoolView(poolId: string): Promise<PoolView> {
-  const entrants = readAgents().filter((a) => a.poolId === poolId);
-  const all = allFixtures().filter((f) => f.poolId === poolId);
-  const upcoming = all
-    .filter((f) => f.status !== "final")
-    .sort((a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime());
-  const final = all.filter((f) => f.status === "final");
-
-  let info: PoolInfo | null = null;
-  let error: string | undefined;
-  try {
-    info = await readPoolInfo(BigInt(poolId));
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
+function withPicks(fixtures: Fixture[], preds: StoredPrediction[], agents: Map<string, StoredAgent>): FixtureRow[] {
+  const byFixture = new Map<string, StoredPrediction[]>();
+  for (const p of preds) {
+    const list = byFixture.get(p.fixtureId) ?? [];
+    list.push(p);
+    byFixture.set(p.fixtureId, list);
   }
-  return { poolId, info, entrants, fixtures: { upcoming, final }, error };
+  return fixtures.map((f) => ({
+    ...f,
+    picks: (byFixture.get(f.id) ?? []).map((p) => {
+      const a = agents.get(p.agentId);
+      return {
+        agentId: p.agentId,
+        name: a?.template.name ?? p.agentId,
+        avatar: a?.avatar,
+        homeScore: p.homeScore,
+        awayScore: p.awayScore,
+        confidence: p.confidence,
+        points: isFinal(f) ? pointsFor(p, f) : null,
+        bought: (p.decisions ?? []).filter((d) => d.decision === "buy").map((d) => d.source),
+      };
+    }),
+  }));
+}
+
+export async function getPoolView(c: Competition): Promise<PoolView> {
+  const poolId = poolIdOf(c);
+  const agents = readAgents();
+  const entrants = poolId ? agents.filter((a) => a.poolId === poolId) : [];
+  const preds = poolId ? readPredictions().filter((p) => p.poolId === poolId) : [];
+  const byId = new Map(agents.map((a) => [a.agentId, a]));
+  const all = seasonFixtures(c);
+  const now = Date.now();
+  const upcoming = all
+    .filter((f) => f.status === "scheduled" && !f.postponed && new Date(f.kickoff).getTime() > now - 3 * 3600_000)
+    .sort((a, b) => a.kickoff.localeCompare(b.kickoff))
+    .slice(0, 20);
+  const live = all.filter((f) => f.status === "in_play");
+  const results = all
+    .filter(isFinal)
+    .sort((a, b) => b.kickoff.localeCompare(a.kickoff))
+    .slice(0, 20);
+  return {
+    competition: c,
+    poolId,
+    info: await readPoolInfo(poolId),
+    entrants,
+    upcoming: withPicks(upcoming, preds, byId),
+    live: withPicks(live, preds, byId),
+    results: withPicks(results, preds, byId),
+  };
+}
+
+/** Summary card per league for the home page. */
+export async function getLeagueCards() {
+  return Promise.all(
+    COMPETITIONS.map(async (c) => {
+      const poolId = poolIdOf(c);
+      const board = getLeaderboard(c);
+      const next = seasonFixtures(c)
+        .filter((f) => f.status === "scheduled" && !f.postponed && new Date(f.kickoff).getTime() > Date.now())
+        .sort((a, b) => a.kickoff.localeCompare(b.kickoff))[0];
+      return {
+        competition: c,
+        poolId,
+        info: await readPoolInfo(poolId),
+        leader: board[0] && board[0].fixturesScored > 0 ? board[0] : null,
+        entrants: board.length,
+        next: next ?? null,
+      };
+    }),
+  );
+}
+
+// --- agent page ------------------------------------------------------------------------
+
+export function getAgentView(agentId: string) {
+  const agent = readAgents().find((a) => a.agentId === agentId);
+  if (!agent) return null;
+  const finals = finalsById();
+  const fixtures = new Map(allFixtures().map((f) => [f.id, f]));
+  const preds = readPredictions()
+    .filter((p) => p.agentId === agentId)
+    .sort((a, b) => (fixtures.get(b.fixtureId)?.kickoff ?? "").localeCompare(fixtures.get(a.fixtureId)?.kickoff ?? ""));
+  const spent = preds.reduce((s, p) => s + BigInt(p.spent), 0n);
+  let points = 0;
+  let scored = 0;
+  let exact = 0;
+  const rows = preds.map((p) => {
+    const f = fixtures.get(p.fixtureId);
+    const pts = pointsFor(p, finals.get(p.fixtureId));
+    if (pts !== null) {
+      points += pts;
+      scored++;
+      if (pts === 5) exact++;
+    }
+    return { prediction: p, fixture: f, points: pts };
+  });
+  return {
+    agent,
+    competition: competitionOfAgent(agent),
+    rows,
+    spent,
+    points,
+    scored,
+    exact,
+  };
+}
+
+/** The worker's heartbeat (last tick, recent log) for the stats page. */
+export function getWorkerStatus() {
+  const s = readJsonFile<{ lastTickAt?: string; lastSyncAt?: string; lastError?: string; log: { at: string; msg: string }[] }>(
+    "worker.json",
+    { log: [] },
+  );
+  const healthy = Boolean(s.lastTickAt && Date.now() - new Date(s.lastTickAt).getTime() < 20 * 60 * 1000);
+  return { ...s, healthy };
 }

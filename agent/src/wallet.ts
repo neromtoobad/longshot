@@ -1,56 +1,16 @@
-// Per-agent wallet module (EXECUTION_PLAN Phase 3.1).
-//
-// Provisions one Circle Developer-Controlled Wallet (EOA) per agent on Arc testnet, funds it in
-// USDC, reads its balance at 6 decimals, and exposes a hard budget cap so an agent can never spend
-// past its allocation. Wallets are EOA (not SCA) because Gateway/x402 verify signatures with
-// ecrecover. See [[wallet-architecture-decision]].
+// Agent wallets. Every agent has its own EOA on Arc testnet (key in the encrypted keystore in the
+// data dir). Its owner funds it with plain USDC; the worker then deposits that USDC into the Circle
+// Gateway Wallet from the agent's own key, and the agent pays for evidence out of its Gateway
+// balance with signed x402 authorizations (batched, gasless). A hard budget cap stops an agent
+// spending past its allocation no matter what its balance is.
 
-import type { Blockchain } from "@circle-fin/developer-controlled-wallets";
-import { createWalletClient, getAddress, http, type Address } from "viem";
+import { createWalletClient, http, parseUnits, type Address, type Hash } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { arcTestnet, createArcPublicClient, erc20BalanceOfAbi, USDC_ADDRESS } from "@longshot/shared";
-import { circleClient } from "./circle/client.js";
+import { ADDRESSES, arcRpcUrl, arcTestnet, createArcPublicClient, erc20BalanceOfAbi, USDC_ADDRESS } from "@longshot/shared";
+import { loadAgentKey } from "@longshot/shared/server";
 
-export const ARC_CIRCLE_BLOCKCHAIN: Blockchain = "ARC-TESTNET";
-
-export interface AgentWallet {
-  walletId: string;
-  address: Address;
-  walletSetId: string;
-}
-
-/** Provision a fresh Circle DCW EOA wallet on Arc testnet for an agent. */
-export async function createAgentWallet(name: string): Promise<AgentWallet> {
-  const client = circleClient();
-
-  const setRes = await client.createWalletSet({ name: `longshot:${name}` });
-  const walletSetId = setRes.data?.walletSet?.id;
-  if (!walletSetId) throw new Error("Circle returned no wallet set id");
-
-  const walletsRes = await client.createWallets({
-    walletSetId,
-    accountType: "EOA",
-    blockchains: [ARC_CIRCLE_BLOCKCHAIN],
-    count: 1,
-  });
-  const wallet = walletsRes.data?.wallets?.[0];
-  if (!wallet?.address) throw new Error("Circle returned no wallet");
-
-  return { walletId: wallet.id, address: getAddress(wallet.address), walletSetId };
-}
-
-/** Read an address's USDC balance (base units, 6 decimals) via the Arc public client. */
-export async function getAgentUsdcBalance(address: Address): Promise<bigint> {
-  const client = createArcPublicClient();
-  return client.readContract({
-    address: USDC_ADDRESS,
-    abi: erc20BalanceOfAbi,
-    functionName: "balanceOf",
-    args: [address],
-  });
-}
-
-const erc20TransferAbi = [
+const erc20Abi = [
+  ...erc20BalanceOfAbi,
   {
     type: "function",
     name: "transfer",
@@ -59,82 +19,156 @@ const erc20TransferAbi = [
       { name: "to", type: "address" },
       { name: "amount", type: "uint256" },
     ],
-    outputs: [{ name: "", type: "bool" }],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ type: "uint256" }],
   },
 ] as const;
 
-/**
- * Fund an address with USDC from the deployer EOA (raw key from DEPLOYER_PRIVATE_KEY). Used to seed
- * an agent wallet from the owner's budget. Returns the tx hash; caller can await the receipt.
- */
-export async function fundFromDeployer(to: Address, amount: bigint): Promise<`0x${string}`> {
+// Circle Gateway Wallet (same address on every testnet). ABI from @circle-fin/x402-batching.
+const gatewayAbi = [
+  {
+    type: "function",
+    name: "deposit",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "value", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "availableBalance",
+    stateMutability: "view",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "depositor", type: "address" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
+/** Arc drops transactions priced under ~20 gwei, so pin a floor on every write. */
+const MIN_FEE = parseUnits("25", 9);
+
+function walletFor(pk: `0x${string}`) {
+  return createWalletClient({ account: privateKeyToAccount(pk), chain: arcTestnet, transport: http(arcRpcUrl()) });
+}
+
+export function treasuryKey(): `0x${string}` {
   const pk = process.env.DEPLOYER_PRIVATE_KEY;
-  const rpc = process.env.RPC;
-  if (!pk) throw new Error("DEPLOYER_PRIVATE_KEY not set");
-  if (!rpc) throw new Error("process.env.RPC not set (provide it via arc-canteen)");
+  if (!pk) throw new Error("DEPLOYER_PRIVATE_KEY (treasury) not set");
+  return (pk.startsWith("0x") ? pk : `0x${pk}`) as `0x${string}`;
+}
 
-  const account = privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as `0x${string}`);
-  const wallet = createWalletClient({ account, chain: arcTestnet, transport: http(rpc) });
+export function treasuryAddress(): Address {
+  return privateKeyToAccount(treasuryKey()).address;
+}
 
-  return wallet.writeContract({
+async function fees() {
+  const est = await createArcPublicClient().estimateFeesPerGas();
+  const maxFeePerGas = est.maxFeePerGas > MIN_FEE ? est.maxFeePerGas : MIN_FEE;
+  const maxPriorityFeePerGas = est.maxPriorityFeePerGas > MIN_FEE ? est.maxPriorityFeePerGas : MIN_FEE;
+  return { maxFeePerGas: maxFeePerGas * 2n, maxPriorityFeePerGas };
+}
+
+async function confirm(hash: Hash): Promise<Hash> {
+  const r = await createArcPublicClient().waitForTransactionReceipt({ hash });
+  if (r.status !== "success") throw new Error(`tx reverted: ${hash}`);
+  return hash;
+}
+
+/** Plain USDC balance (ERC-20 view, 6 decimals). */
+export async function usdcBalance(address: Address): Promise<bigint> {
+  return createArcPublicClient().readContract({
     address: USDC_ADDRESS,
-    abi: erc20TransferAbi,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [address],
+  });
+}
+
+/** Spendable Gateway balance for an address (6 decimals). Lags pending batches by a few minutes. */
+export async function gatewayBalance(address: Address): Promise<bigint> {
+  return createArcPublicClient().readContract({
+    address: ADDRESSES.gatewayWallet,
+    abi: gatewayAbi,
+    functionName: "availableBalance",
+    args: [USDC_ADDRESS, address],
+  });
+}
+
+/** Send USDC from the treasury (house agents top-ups, seeding). */
+export async function fundFromTreasury(to: Address, amount: bigint): Promise<Hash> {
+  const hash = await walletFor(treasuryKey()).writeContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
     functionName: "transfer",
     args: [to, amount],
+    ...(await fees()),
   });
-}
-
-// --- gateway deposit (for DCW wallets) -------------------------------------
-
-const GATEWAY_WALLET_ADDRESS = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
-
-async function waitForCircleTx(challengeId: string): Promise<string> {
-  const client = circleClient();
-  for (;;) {
-    const res = await client.getTransaction({ id: challengeId });
-    const tx = res.data?.transaction;
-    if (tx?.state === "CONFIRMED" || tx?.state === "COMPLETE") {
-      if (!tx.txHash) throw new Error(`tx ${challengeId} ${tx.state} but no txHash`);
-      return tx.txHash;
-    }
-    if (tx?.state === "FAILED") throw new Error(`tx ${challengeId} failed: ${tx.errorReason}`);
-    await new Promise((r) => setTimeout(r, 2000));
-  }
+  return confirm(hash);
 }
 
 /**
- * Deposit USDC from a DCW wallet into the Gateway Wallet contract so the agent can pay x402
- * nanopayments (Gateway spends from this deposited balance, not the EOA). approve then deposit,
- * each a Circle contract-execution tx. The other half of provisioning, alongside funding the EOA.
- * NOTE: not yet exercised live (Phase 3.3 proves the buyer with a pre-funded deployer); agents
- * use this in Phase 4.
+ * Move an agent wallet's USDC into Gateway from the agent's own key (approve, then deposit).
+ * Keeps `gasReserve` behind for future approve/deposit gas (gas on Arc is paid in USDC).
  */
-export async function depositToGateway(
-  walletId: string,
-  amount: bigint,
-): Promise<{ approveTx: string; depositTx: string }> {
-  const client = circleClient();
-  const fee = { type: "level" as const, config: { feeLevel: "HIGH" as const } };
+export async function depositAgentToGateway(
+  agentAddress: Address,
+  gasReserve = parseUnits("0.02", 6),
+): Promise<{ amount: bigint; tx?: Hash }> {
+  const balance = await usdcBalance(agentAddress);
+  if (balance <= gasReserve) return { amount: 0n };
+  const amount = balance - gasReserve;
 
-  const approve = await client.createContractExecutionTransaction({
-    walletId,
-    contractAddress: USDC_ADDRESS,
-    abiFunctionSignature: "approve(address,uint256)",
-    abiParameters: [GATEWAY_WALLET_ADDRESS, amount.toString()],
-    fee,
+  const wallet = walletFor(loadAgentKey(agentAddress));
+  const allowance = await createArcPublicClient().readContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [agentAddress, ADDRESSES.gatewayWallet],
   });
-  const approveTx = await waitForCircleTx(approve.data?.id ?? "");
-
-  const deposit = await client.createContractExecutionTransaction({
-    walletId,
-    contractAddress: GATEWAY_WALLET_ADDRESS,
-    abiFunctionSignature: "deposit(address,uint256)",
-    abiParameters: [USDC_ADDRESS, amount.toString()],
-    fee,
+  if (allowance < amount) {
+    await confirm(
+      await wallet.writeContract({
+        address: USDC_ADDRESS,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [ADDRESSES.gatewayWallet, 2n ** 255n],
+        ...(await fees()),
+      }),
+    );
+  }
+  const tx = await wallet.writeContract({
+    address: ADDRESSES.gatewayWallet,
+    abi: gatewayAbi,
+    functionName: "deposit",
+    args: [USDC_ADDRESS, amount],
+    gas: 120_000n,
+    ...(await fees()),
   });
-  const depositTx = await waitForCircleTx(deposit.data?.id ?? "");
-
-  return { approveTx, depositTx };
+  await confirm(tx);
+  return { amount, tx };
 }
 
 // --- budget cap ------------------------------------------------------------

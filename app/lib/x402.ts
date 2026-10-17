@@ -7,6 +7,7 @@
 
 import { BatchFacilitatorClient } from "@circle-fin/x402-batching/server";
 import { NextResponse, type NextRequest } from "next/server";
+import { privateKeyToAccount } from "viem/accounts";
 
 const ARC_TESTNET_NETWORK = "eip155:5042002";
 const ARC_TESTNET_USDC = "0x3600000000000000000000000000000000000000";
@@ -14,8 +15,11 @@ const ARC_TESTNET_GATEWAY_WALLET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
 
 function sellerAddress(): `0x${string}` {
   const addr = process.env.SELLER_ADDRESS;
-  if (!addr) throw new Error("SELLER_ADDRESS is not set (the wallet that receives data payments).");
-  return addr as `0x${string}`;
+  if (addr) return addr as `0x${string}`;
+  // Default: the treasury receives evidence payments.
+  const pk = process.env.DEPLOYER_PRIVATE_KEY;
+  if (pk) return privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as `0x${string}`).address;
+  throw new Error("SELLER_ADDRESS is not set (the wallet that receives data payments).");
 }
 
 interface PaymentPayload {
@@ -59,6 +63,11 @@ export interface WithGatewayOptions {
   payTo?: string;
   /** Called after a successful settlement — e.g. to record broker revenue. */
   onSettled?: (info: SettleInfo) => void;
+  /**
+   * Runs before anything else, paid or not. Return a response to short-circuit (e.g. 404 when there
+   * is no data for this fixture) so nobody is ever charged for an empty answer.
+   */
+  precheck?: (req: NextRequest) => Promise<NextResponse | null>;
 }
 
 // BatchFacilitatorClient defaults to the MAINNET facilitator; pin it to Arc testnet.
@@ -77,6 +86,8 @@ export function withGateway(
   options: WithGatewayOptions = {},
 ) {
   return async (req: NextRequest) => {
+    const early = await options.precheck?.(req);
+    if (early) return early;
     const requirements = buildPaymentRequirements(price, options.payTo);
     const paymentSignature = req.headers.get("payment-signature");
 
@@ -154,7 +165,7 @@ export function withGateway(
 
 export const EVIDENCE_PRICES = {
   form: "$0.003",
-  odds: "$0.005",
-  injuries: "$0.002",
+  odds: "$0.004",
+  table: "$0.002",
   h2h: "$0.002",
 } as const;

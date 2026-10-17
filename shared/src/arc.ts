@@ -1,7 +1,10 @@
-import { createPublicClient, defineChain, http } from "viem";
+import { createPublicClient, defineChain, http, type PublicClient, type Transport } from "viem";
 import type { Address } from "./types.js";
 
 export const ARC_TESTNET_CHAIN_ID = 5042002;
+/** Public Arc testnet RPC. Override with process.env.RPC (e.g. a keyed endpoint). */
+export const ARC_TESTNET_PUBLIC_RPC = "https://rpc.testnet.arc.io";
+export const ARC_TESTNET_EXPLORER = "https://explorer.testnet.arc.io";
 
 // USDC is the native token on Arc. Its ERC-20 interface (below) presents balances at 6 decimals;
 // the native gas balance is reported in 18-decimal wei. All USDC *token* amounts use 6 decimals
@@ -13,21 +16,17 @@ export const arcTestnet = defineChain({
   name: "Arc Testnet",
   // Native gas accounting is 18-decimal wei; symbol is USDC.
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  // No URL baked in: the RPC is supplied at runtime via process.env.RPC (arc-canteen).
-  rpcUrls: { default: { http: [] } },
+  rpcUrls: { default: { http: [ARC_TESTNET_PUBLIC_RPC] } },
+  blockExplorers: { default: { name: "ArcScan", url: ARC_TESTNET_EXPLORER } },
 });
 
-/**
- * A viem public client for Arc, using the RPC URL from process.env.RPC.
- * The RPC is provided by the arc-canteen CLI and is not committed to .env. Throws if unset.
- */
-export function createArcPublicClient(rpcUrl = process.env.RPC) {
-  if (!rpcUrl) {
-    throw new Error(
-      "process.env.RPC is not set. Provide the Arc testnet RPC via the arc-canteen CLI: " +
-        "`arc-canteen rpc-url --export` (or add `arc-canteen shell-init` to your shell rc).",
-    );
-  }
+/** The RPC to use: process.env.RPC when set, else the public Arc testnet RPC. */
+export function arcRpcUrl(): string {
+  return process.env.RPC || ARC_TESTNET_PUBLIC_RPC;
+}
+
+/** A viem public client for Arc testnet. */
+export function createArcPublicClient(rpcUrl = arcRpcUrl()): PublicClient<Transport, typeof arcTestnet> {
   return createPublicClient({ chain: arcTestnet, transport: http(rpcUrl) });
 }
 

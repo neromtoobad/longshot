@@ -1,13 +1,13 @@
 // x402 seller smoke test (Phase 3.2): unpaid request -> 402, paid request -> 200.
 // Buyer pays from DEPLOYER_PRIVATE_KEY's Gateway balance via the x402-batching GatewayClient.
 //
-// Run with the dev server up:
+// Run with the dev server up (pass a real fixture id as the second arg):
 //   pnpm --filter @longshot/app x402:smoke   (needs $RPC + DEPLOYER_PRIVATE_KEY)
 
 import { GatewayClient } from "@circle-fin/x402-batching/client";
 
 const base = process.argv[2] ?? "http://localhost:3100";
-const url = `${base}/api/evidence/form?fixtureId=worldcup-1`;
+const url = `${base}/api/evidence/form?fixtureId=${process.argv[3] ?? ""}`;
 
 const pk = process.env.DEPLOYER_PRIVATE_KEY;
 if (!pk) throw new Error("DEPLOYER_PRIVATE_KEY not set");

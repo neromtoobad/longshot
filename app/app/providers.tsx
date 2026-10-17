@@ -6,7 +6,6 @@ import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { arcChain, getConfig } from "@/lib/wagmi";
-import { WalletProvider } from "@/lib/wallet-context";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [config] = useState(() => getConfig());
@@ -18,7 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
           initialChain={arcChain}
           theme={darkTheme({ accentColor: "#225aeb", accentColorForeground: "#ffffff", borderRadius: "medium" })}
         >
-          <WalletProvider>{children}</WalletProvider>
+          {children}
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

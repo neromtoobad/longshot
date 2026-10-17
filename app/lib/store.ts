@@ -1,5 +1,5 @@
-// App-side access to the shared runtime store (written by fixtures:sync + the agent runner, and by
-// the register flow). Shares LONGSHOT_DATA_DIR with the agent.
+// App-side access to the shared runtime store (written by the worker and by the register flow).
+// Shares the data dir with the worker.
 
 import type { Bytes32, EvidenceSource, Purchase } from "@longshot/shared";
 import { readData as read, writeData as write } from "./datadir";
@@ -8,10 +8,12 @@ export interface StoredAgent {
   agentId: string;
   owner: string;
   poolId: string;
-  walletId: string;
+  /** The agent's own wallet; its key lives in the encrypted keystore. */
   walletAddress: string;
   onChainAgentId?: string;
-  gatewayDeposited?: boolean;
+  /** Treasury-run house agent. */
+  house?: boolean;
+  createdAt?: string;
   /** Cosmetic agent image (DiceBear style + seed). Not part of the on-chain template hash. */
   avatar?: { style: string; seed: string };
   template: {
@@ -20,7 +22,7 @@ export interface StoredAgent {
     prompt: string;
     riskAppetite: string;
     dataPreference: { preferBroker: boolean; willingnessToPay: Partial<Record<EvidenceSource, string>> };
-    modelProvider: "venice";
+    modelProvider: "default";
     model?: string;
     budget: string;
   };
@@ -49,6 +51,7 @@ export interface StoredPrediction {
   predictionHash: Bytes32;
   spent: string;
   decisions?: EvidenceDecision[];
+  commitTx?: string;
   createdAt: string;
 }
 
@@ -80,7 +83,7 @@ export function readPurchases(): Purchase[] {
 /** Persist a new agent (register flow). Returns the assigned agentId. */
 export function saveAgent(agent: Omit<StoredAgent, "agentId"> & { agentId?: string }): StoredAgent {
   const agents = readAgents();
-  const agentId = agent.agentId ?? String(agents.length + 1);
+  const agentId = agent.agentId ?? `a${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const record: StoredAgent = { ...agent, agentId };
   write("agents.json", [...agents.filter((a) => a.agentId !== agentId), record]);
   return record;

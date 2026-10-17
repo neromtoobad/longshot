@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
     }
   },
   "scripts": {
@@ -19,10 +23,10 @@
     "score:test": "tsx scripts/scoring-test.ts"
   },
   "dependencies": {
-    "viem": "^2.21.0"
+    "viem": "^2.57.7"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "tsx": "^4.21.0"
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15"
   }
 }

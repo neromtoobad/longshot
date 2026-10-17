@@ -1,21 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useReadContract, useSwitchChain } from "wagmi";
+import { useAccount, useDisconnect, useReadContract, useSwitchChain } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { arcChain } from "@/lib/wagmi";
 import { USDC_ADDRESS, usdcAbi } from "@/lib/contracts";
-import { useWallet } from "@/lib/wallet-context";
 
 function short(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
 export function ConnectWallet() {
-  const { address, isConnected, walletType, circleAvailable, socialAvailable, connectCircle, connectGoogle, disconnect, isConnecting, circleError } = useWallet();
-  const { chainId, connector } = useAccount();
+  const { address, isConnected, chainId, connector } = useAccount();
+  const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
-  const { openConnectModal } = useConnectModal();
+  const { openConnectModal, connectModalOpen } = useConnectModal();
   const [open, setOpen] = useState(false);
 
   const { data: balance } = useReadContract({
@@ -28,12 +27,7 @@ export function ConnectWallet() {
   });
   const usdc = balance !== undefined ? (Number(balance as bigint) / 1_000_000).toFixed(2) : "—";
 
-  const isCircle = walletType === "circle";
-  const eoaName = connector?.name ?? "Wallet";
-  const eoaIcon = /metamask/i.test(eoaName) ? "🦊" : /coinbase/i.test(eoaName) ? "🔵" : /rainbow/i.test(eoaName) ? "🌈" : "👛";
-
-  // EOA on the wrong chain → prompt a switch (Circle smart accounts are always on Arc).
-  if (isConnected && !isCircle && chainId !== arcChain.id) {
+  if (isConnected && chainId !== arcChain.id) {
     return (
       <button onClick={() => switchChain({ chainId: arcChain.id })} className="rounded-xl border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-medium text-gold">
         Switch to Arc
@@ -45,16 +39,22 @@ export function ConnectWallet() {
     return (
       <div className="relative">
         <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-xl border border-line2 bg-surface px-3 py-2 text-sm transition hover:border-accent/50">
-          <span>{isCircle ? "⚡" : eoaIcon}</span>
           <span className="num font-semibold text-accent2">{usdc}</span>
           <span className="hidden text-xs text-ink2 sm:inline">USDC</span>
           <span className="mono text-[11px] text-ink3">{short(address)}</span>
         </button>
         {open && (
-          <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-line bg-surface p-3 shadow-xl">
-            <div className="mono text-[10px] uppercase tracking-wider text-ink3">{isCircle ? "circle smart wallet" : eoaName}</div>
+          <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-line bg-surface p-3 shadow-xl">
+            <div className="mono text-[10px] uppercase tracking-wider text-ink3">{connector?.name ?? "wallet"} · Arc testnet</div>
             <div className="mono mt-1 break-all text-[11px] text-ink2">{address}</div>
-            {isCircle && <div className="mt-2 rounded-lg bg-accent/10 px-2 py-1 text-[11px] text-accent2">PIN · Circle smart wallet on Arc</div>}
+            <a
+              href="https://faucet.circle.com"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block rounded-lg bg-accent/10 px-2 py-1.5 text-[11px] text-accent2 hover:bg-accent/20"
+            >
+              Need testnet USDC? faucet.circle.com ↗
+            </a>
             <button onClick={() => { disconnect(); setOpen(false); }} className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm text-ink2 transition hover:bg-surface2 hover:text-neg">
               Disconnect
             </button>
@@ -65,45 +65,12 @@ export function ConnectWallet() {
   }
 
   return (
-    <div className="relative">
-      <button onClick={() => setOpen((o) => !o)} disabled={isConnecting} className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accentink transition hover:opacity-90 disabled:opacity-50">
-        {isConnecting ? "Connecting…" : "Connect wallet"}
-      </button>
-      {open && (
-        <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-line bg-surface p-2 shadow-xl">
-          <button
-            onClick={() => { connectCircle(); if (circleAvailable) setOpen(false); }}
-            className="flex w-full items-start gap-3 rounded-lg p-3 text-left transition hover:bg-surface2"
-          >
-            <span className="text-lg">🔐</span>
-            <span>
-              <span className="block text-sm font-semibold">Smart Wallet · PIN</span>
-              <span className="block text-[11px] text-ink2">{circleAvailable ? "Circle smart wallet on Arc · set a PIN" : "Circle — needs setup (App ID)"}</span>
-            </span>
-          </button>
-          <button
-            onClick={() => { connectGoogle(); if (socialAvailable) setOpen(false); }}
-            className="flex w-full items-start gap-3 rounded-lg p-3 text-left transition hover:bg-surface2"
-          >
-            <span className="text-lg">🇬</span>
-            <span>
-              <span className="block text-sm font-semibold">Sign in with Google</span>
-              <span className="block text-[11px] text-ink2">{socialAvailable ? "Circle smart wallet · no seed phrase" : "Google — needs setup (client ID)"}</span>
-            </span>
-          </button>
-          <button
-            onClick={() => { setOpen(false); openConnectModal?.(); }}
-            className="flex w-full items-start gap-3 rounded-lg p-3 text-left transition hover:bg-surface2"
-          >
-            <span className="text-lg">🌈</span>
-            <span>
-              <span className="block text-sm font-semibold">More wallets →</span>
-              <span className="block text-[11px] text-ink2">MetaMask, Coinbase, Rainbow, WalletConnect…</span>
-            </span>
-          </button>
-          {circleError && <p className="px-3 py-1 text-[11px] text-neg">{circleError}</p>}
-        </div>
-      )}
-    </div>
+    <button
+      onClick={() => openConnectModal?.()}
+      disabled={connectModalOpen}
+      className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accentink transition hover:opacity-90 disabled:opacity-50"
+    >
+      Connect wallet
+    </button>
   );
 }

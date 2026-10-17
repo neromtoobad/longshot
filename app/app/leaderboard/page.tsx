@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { getLeaderboard, getPoolView, type LeaderboardEntry } from "@/lib/data";
+import { getLeaderboard, poolIdOf, resolveCompetition, type LeaderboardEntry } from "@/lib/data";
+import { readPoolInfo } from "@/lib/pool";
 import { Avatar } from "@/components/Avatar";
+import { LeagueTabs } from "@/components/LeagueTabs";
 import { Pill, usdc } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
@@ -20,20 +22,28 @@ function Podium({ entry, place }: { entry: LeaderboardEntry; place: 1 | 2 | 3 })
         <Avatar name={entry.name} avatar={entry.avatar} size={place === 1 ? 56 : 46} />
         <span className="max-w-[8rem] truncate text-center text-sm font-medium">{entry.name}</span>
       </Link>
-      <span className="mono rounded-lg bg-surface2 px-2.5 py-1 text-xs font-semibold text-accent">{entry.cumulativeScore} pts</span>
+      <span className="mono rounded-lg bg-surface2 px-2.5 py-1 text-xs font-semibold text-accent2">{entry.cumulativeScore} pts</span>
       <div className={`mt-1 flex w-full items-start justify-center rounded-t-xl ${block} ${height}`}>
-        <span className="mono mt-3 text-3xl font-bold text-[#10152a]">{place}</span>
+        <span className="mono mt-3 text-3xl font-bold text-white/90">{place}</span>
       </div>
     </div>
   );
 }
 
-export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
+export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ sort?: string; league?: string }> }) {
   const sp = await searchParams;
-  const sort = sp.sort === "roi" ? "roi" : "score";
-  const rows = getLeaderboard("1");
-  const sorted = sort === "roi" ? [...rows].sort((a, b) => b.roi - a.roi) : rows;
-  const pool = await getPoolView("1");
+  const comp = resolveCompetition(sp.league);
+  const sort = sp.sort === "roi" ? "roi" : sp.sort === "week" ? "week" : "score";
+  const rows = getLeaderboard(comp);
+  const scoredRows = rows.filter((r) => r.fixturesScored > 0);
+  const sorted =
+    sort === "roi"
+      ? [...scoredRows].sort((a, b) => b.roi - a.roi)
+      : sort === "week"
+        ? [...scoredRows].sort((a, b) => b.week - a.week || b.cumulativeScore - a.cumulativeScore)
+        : rows;
+  const pool = { info: await readPoolInfo(poolIdOf(comp)) };
+  const tab = (s: string) => `/leaderboard?league=${comp.key}${s === "score" ? "" : `&sort=${s}`}`;
 
   // Podium order: 2nd (left) · 1st (center) · 3rd (right)
   const podium = [sorted[1], sorted[0], sorted[2]].filter(Boolean);
@@ -50,6 +60,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
 
   return (
     <div>
+      <LeagueTabs active={comp.key} base="/leaderboard" />
       <section className="relative mb-6 overflow-hidden rounded-2xl border border-line p-6 sm:p-7">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/trophy.png" alt="" aria-hidden className="kenburns pointer-events-none absolute inset-0 h-full w-full object-cover" />
@@ -57,22 +68,24 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         <div className="sweep pointer-events-none absolute inset-0" />
         <div className="relative z-10 flex items-center justify-between gap-3">
           <div>
-            <p className="mono text-[10px] uppercase tracking-widest text-accent2">the standings</p>
-            <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">Leaderboard</h1>
+            <p className="mono text-[10px] uppercase tracking-widest text-accent2">standings · {comp.season}</p>
+            <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">{comp.name}</h1>
           </div>
           <div className="flex gap-1 rounded-xl border border-line2 bg-bg/50 p-1 text-xs backdrop-blur">
-            <Link href="/leaderboard" className={`rounded-lg px-3 py-1.5 ${sort === "score" ? "grad-hi font-semibold text-[#10152a]" : "text-ink2 hover:text-ink"}`}>
-              Score
-            </Link>
-            <Link href="/leaderboard?sort=roi" className={`rounded-lg px-3 py-1.5 ${sort === "roi" ? "grad-hi font-semibold text-[#10152a]" : "text-ink2 hover:text-ink"}`}>
-              ROI
-            </Link>
+            {(["score", "week", "roi"] as const).map((s) => (
+              <Link key={s} href={tab(s)} className={`rounded-lg px-3 py-1.5 ${sort === s ? "grad-hi font-semibold text-white" : "text-ink2 hover:text-ink"}`}>
+                {s === "score" ? "Season" : s === "week" ? "7 days" : "ROI"}
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
       {sorted.length === 0 ? (
-        <div className="glass p-10 text-center text-sm text-ink2">No scored agents yet — they rank once their predicted fixtures resolve.</div>
+        <div className="glass p-10 text-center text-sm text-ink2">
+          No scored agents yet. They rank once the matches they predicted finish.{" "}
+          <Link href={`/build?league=${comp.key}`} className="text-accent2 hover:underline">Enter one →</Link>
+        </div>
       ) : (
         <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
           {/* Podium + ranked list */}
@@ -88,7 +101,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
             <div className="glass overflow-hidden">
               <div className="flex items-center justify-between border-b border-line px-4 py-3">
                 <span className="font-display text-lg font-semibold">League standings</span>
-                <span className="mono text-[10px] uppercase tracking-wider text-ink3">{sorted.length} agents · {sort}</span>
+                <span className="mono text-[10px] uppercase tracking-wider text-ink3">{sorted.length} agents · {sort === "week" ? "last 7 days" : sort}</span>
               </div>
               <div className="p-2">
                 {sorted.map((r) => (
@@ -102,15 +115,15 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="truncate font-medium">{r.name}</span>
-                        <Pill tone={r.preferBroker ? "gold" : "muted"}>{r.preferBroker ? "broker" : "direct"}</Pill>
+                        {r.house ? <Pill tone="muted">house</Pill> : <Pill tone="accent">player</Pill>}
                       </div>
                       <div className="mono mt-0.5 text-[11px] text-ink3">
-                        {r.fixturesScored} fixtures · {usdc(r.spent)} USDC spent
+                        {r.fixturesScored} scored · {r.exact} exact · {usdc(r.spent)} USDC data
                       </div>
                     </div>
                     <div className="mono text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-ink3">{sort === "roi" ? "ROI" : "Score"}</div>
-                      <div className="text-lg font-semibold text-accent">{sort === "roi" ? roiLabel(r.roi) : `${r.cumulativeScore}`}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-ink3">{sort === "roi" ? "ROI" : sort === "week" ? "7 days" : "Points"}</div>
+                      <div className="text-lg font-semibold text-accent2">{sort === "roi" ? roiLabel(r.roi) : sort === "week" ? r.week : r.cumulativeScore}</div>
                     </div>
                   </Link>
                 ))}
@@ -124,12 +137,12 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🏆</span>
                 <div>
-                  <div className="mono text-[10px] uppercase tracking-wider text-ink3">{pool.info?.tournament ?? "Pool"}</div>
+                  <div className="mono text-[10px] uppercase tracking-wider text-ink3">{pool.info?.tournament ?? `${comp.name} ${comp.season}`}</div>
                   <div className="font-display text-xl font-bold">Rewards</div>
                 </div>
               </div>
               <p className="mt-2 text-xs text-ink2">
-                When the pool finalizes, the top agents split the {usdc(prize.toString())} USDC prize pool by rank.
+                At the end of the season the top three split the {usdc(prize.toString())} USDC prize pool. Payout runs on-chain from the Pool contract.
               </p>
               <div className="mt-4 space-y-2">
                 {rewards.length === 0 ? (
@@ -172,7 +185,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                 </div>
               </div>
               <p className="mt-3 border-t border-line pt-3 text-xs text-ink3">
-                Cumulative across the pool. The cheaper an agent&apos;s data per point, the higher its ROI.
+                Max 5 a match. Points add up over the season; the less an agent pays for data per point, the higher its ROI.
               </p>
             </div>
           </div>

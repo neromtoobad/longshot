@@ -1,33 +1,12 @@
-// On-chain orchestration for the live matchday: register agents (AgentRegistry), join the pool with
-// real USDC entry escrow (Pool), record scores + finalize payout. Uses the deployer key (owner +
-// resolver). viem against the deployed addresses in shared/addresses.arc.json.
+// On-chain calls against the deployed AgentRegistry + Pool (addresses from @longshot/shared). The
+// treasury key is the Pool owner, resolver and runner: it creates pools, enters house agents,
+// commits predictions on agents' behalf, posts results and scores, and finalizes payouts.
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { createWalletClient, http, type Address, type Hash } from "viem";
+import { parseUnits, type Address, type Hash } from "viem";
+import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { arcTestnet, createArcPublicClient, USDC_ADDRESS } from "@longshot/shared";
-
-interface Addresses {
-  contracts: { AgentRegistry: Address; Pool: Address };
-}
-
-export function addresses(): Addresses {
-  const path = resolve(process.cwd(), process.env.ADDRESSES_PATH ?? "../shared/addresses.arc.json");
-  return JSON.parse(readFileSync(path, "utf-8")) as Addresses;
-}
-
-function deployerAccount() {
-  const pk = process.env.DEPLOYER_PRIVATE_KEY;
-  if (!pk) throw new Error("DEPLOYER_PRIVATE_KEY not set");
-  return privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as `0x${string}`);
-}
-
-function wallet() {
-  const rpc = process.env.RPC;
-  if (!rpc) throw new Error("process.env.RPC not set");
-  return createWalletClient({ account: deployerAccount(), chain: arcTestnet, transport: http(rpc) });
-}
+import { ADDRESSES, arcRpcUrl, arcTestnet, createArcPublicClient, USDC_ADDRESS, type Bytes32 } from "@longshot/shared";
+import { treasuryKey } from "./wallet.js";
 
 export const registryAbi = [
   {
@@ -47,6 +26,21 @@ export const registryAbi = [
 export const poolAbi = [
   {
     type: "function",
+    name: "createPool",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "tournament", type: "string" },
+      { name: "entryFeeUSDC", type: "uint256" },
+      { name: "budgetPerAgentUSDC", type: "uint256" },
+      { name: "prizeSplitBps", type: "uint16[]" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+  { type: "function", name: "setRunner", stateMutability: "nonpayable", inputs: [{ name: "_runner", type: "address" }], outputs: [] },
+  { type: "function", name: "runner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  { type: "function", name: "totalPools", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  {
+    type: "function",
     name: "join",
     stateMutability: "nonpayable",
     inputs: [
@@ -59,11 +53,50 @@ export const poolAbi = [
     type: "function",
     name: "joined",
     stateMutability: "view",
-    inputs: [
-      { type: "uint256" },
-      { type: "uint256" },
-    ],
+    inputs: [{ type: "uint256" }, { type: "uint256" }],
     outputs: [{ type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "recordPrediction",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "poolId", type: "uint256" },
+      { name: "agentId", type: "uint256" },
+      { name: "fixtureId", type: "uint256" },
+      { name: "hash", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "predictionHash",
+    stateMutability: "view",
+    inputs: [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+    outputs: [{ type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "resolveFixture",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "poolId", type: "uint256" },
+      { name: "fixtureId", type: "uint256" },
+      { name: "homeScore", type: "uint8" },
+      { name: "awayScore", type: "uint8" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "results",
+    stateMutability: "view",
+    inputs: [{ type: "uint256" }, { type: "uint256" }],
+    outputs: [
+      { name: "resolved", type: "bool" },
+      { name: "homeScore", type: "uint8" },
+      { name: "awayScore", type: "uint8" },
+    ],
   },
   {
     type: "function",
@@ -76,20 +109,14 @@ export const poolAbi = [
     ],
     outputs: [],
   },
-  { type: "function", name: "finalize", stateMutability: "nonpayable", inputs: [{ name: "poolId", type: "uint256" }], outputs: [] },
   {
     type: "function",
-    name: "createPool",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "tournament", type: "string" },
-      { name: "entryFeeUSDC", type: "uint256" },
-      { name: "budgetPerAgentUSDC", type: "uint256" },
-      { name: "prizeSplitBps", type: "uint16[]" },
-    ],
+    name: "agentScore",
+    stateMutability: "view",
+    inputs: [{ type: "uint256" }, { type: "uint256" }],
     outputs: [{ type: "uint256" }],
   },
-  { type: "function", name: "totalPools", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "finalize", stateMutability: "nonpayable", inputs: [{ name: "poolId", type: "uint256" }], outputs: [] },
 ] as const;
 
 const erc20Abi = [
@@ -115,115 +142,121 @@ const erc20Abi = [
   },
 ] as const;
 
-async function send(hash: Hash): Promise<Hash> {
-  await createArcPublicClient().waitForTransactionReceipt({ hash });
-  return hash;
-}
+const MIN_FEE = parseUnits("25", 9);
 
-export function deployerAddress(): Address {
-  return deployerAccount().address;
-}
-
-export async function totalAgents(): Promise<bigint> {
-  return createArcPublicClient().readContract({
-    address: addresses().contracts.AgentRegistry,
-    abi: registryAbi,
-    functionName: "totalAgents",
+function treasury() {
+  return createWalletClient({
+    account: privateKeyToAccount(treasuryKey()),
+    chain: arcTestnet,
+    transport: http(arcRpcUrl()),
   });
 }
 
-/** Register an agent on-chain; returns the assigned agentId (registry ids are sequential, 1-based). */
-export async function registerAgent(name: string, templateHash: `0x${string}`, walletAddress: Address): Promise<{ agentId: bigint; tx: Hash }> {
-  const tx = await wallet().writeContract({
-    address: addresses().contracts.AgentRegistry,
+// Every treasury write goes through one queue so concurrent callers never race on the nonce.
+let queue: Promise<unknown> = Promise.resolve();
+
+async function write(params: Parameters<ReturnType<typeof treasury>["writeContract"]>[0]): Promise<Hash> {
+  const run = async () => {
+    const pub = createArcPublicClient();
+    const est = await pub.estimateFeesPerGas();
+    const maxFeePerGas = (est.maxFeePerGas > MIN_FEE ? est.maxFeePerGas : MIN_FEE) * 2n;
+    const maxPriorityFeePerGas = est.maxPriorityFeePerGas > MIN_FEE ? est.maxPriorityFeePerGas : MIN_FEE;
+    const hash = await treasury().writeContract({ ...params, maxFeePerGas, maxPriorityFeePerGas } as never);
+    const receipt = await pub.waitForTransactionReceipt({ hash });
+    if (receipt.status !== "success") throw new Error(`tx reverted: ${hash}`);
+    return hash;
+  };
+  const next = queue.then(run, run);
+  queue = next.catch(() => undefined);
+  return next;
+}
+
+const pool = () => ADDRESSES.contracts.Pool;
+const registry = () => ADDRESSES.contracts.AgentRegistry;
+
+export async function totalAgents(): Promise<bigint> {
+  return createArcPublicClient().readContract({ address: registry(), abi: registryAbi, functionName: "totalAgents" });
+}
+
+/** Register an agent; registry ids are sequential and 1-based, so the new id is totalAgents(). */
+export async function registerAgent(name: string, templateHash: Bytes32, walletAddress: Address): Promise<{ agentId: bigint; tx: Hash }> {
+  const tx = await write({
+    address: registry(),
     abi: registryAbi,
     functionName: "registerAgent",
     args: [name, templateHash, walletAddress],
-  });
-  await send(tx);
-  const agentId = await totalAgents(); // just-assigned id
-  return { agentId, tx };
+  } as never);
+  return { agentId: await totalAgents(), tx };
 }
 
 export async function isJoined(poolId: bigint, agentId: bigint): Promise<boolean> {
-  return createArcPublicClient().readContract({
-    address: addresses().contracts.Pool,
-    abi: poolAbi,
-    functionName: "joined",
-    args: [poolId, agentId],
-  });
+  return createArcPublicClient().readContract({ address: pool(), abi: poolAbi, functionName: "joined", args: [poolId, agentId] });
 }
 
-export async function ensureAllowance(spender: Address, amount: bigint): Promise<void> {
+export async function ensureTreasuryAllowance(spender: Address, amount: bigint): Promise<void> {
+  const owner = privateKeyToAccount(treasuryKey()).address;
   const current = await createArcPublicClient().readContract({
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: "allowance",
-    args: [deployerAddress(), spender],
+    args: [owner, spender],
   });
   if (current >= amount) return;
-  const tx = await wallet().writeContract({
-    address: USDC_ADDRESS,
-    abi: erc20Abi,
-    functionName: "approve",
-    args: [spender, amount],
-  });
-  await send(tx);
+  await write({ address: USDC_ADDRESS, abi: erc20Abi, functionName: "approve", args: [spender, 2n ** 255n] } as never);
 }
 
-/** Join the pool with the entry fee pulled from the deployer (the agent owner of record). */
+/** The treasury enters an agent (house agents). The treasury becomes the prize recipient. */
 export async function joinPool(poolId: bigint, agentId: bigint, entryFee: bigint): Promise<Hash> {
-  await ensureAllowance(addresses().contracts.Pool, entryFee);
-  const tx = await wallet().writeContract({
-    address: addresses().contracts.Pool,
-    abi: poolAbi,
-    functionName: "join",
-    args: [poolId, agentId],
-  });
-  return send(tx);
+  if (entryFee > 0n) await ensureTreasuryAllowance(pool(), entryFee);
+  return write({ address: pool(), abi: poolAbi, functionName: "join", args: [poolId, agentId] } as never);
 }
 
-export async function recordScoreOnChain(poolId: bigint, agentId: bigint, cumulative: bigint): Promise<Hash> {
-  const tx = await wallet().writeContract({
-    address: addresses().contracts.Pool,
-    abi: poolAbi,
-    functionName: "recordScore",
-    args: [poolId, agentId, cumulative],
-  });
-  return send(tx);
-}
-
-export async function totalPools(): Promise<bigint> {
-  return createArcPublicClient().readContract({
-    address: addresses().contracts.Pool,
-    abi: poolAbi,
-    functionName: "totalPools",
-  });
-}
-
-export async function createPool(
-  tournament: string,
-  entryFeeUSDC: bigint,
-  budgetPerAgentUSDC: bigint,
-  prizeSplitBps: number[],
-): Promise<{ poolId: bigint; tx: Hash }> {
-  const tx = await wallet().writeContract({
-    address: addresses().contracts.Pool,
-    abi: poolAbi,
-    functionName: "createPool",
-    args: [tournament, entryFeeUSDC, budgetPerAgentUSDC, prizeSplitBps],
-  });
-  await send(tx);
-  const poolId = await totalPools(); // just-created id (sequential, 1-based)
+export async function createPool(name: string, entryFee: bigint, budget: bigint, split: number[]): Promise<{ poolId: bigint; tx: Hash }> {
+  const tx = await write({ address: pool(), abi: poolAbi, functionName: "createPool", args: [name, entryFee, budget, split] } as never);
+  const poolId = await createArcPublicClient().readContract({ address: pool(), abi: poolAbi, functionName: "totalPools" });
   return { poolId, tx };
 }
 
-export async function finalizePool(poolId: bigint): Promise<Hash> {
-  const tx = await wallet().writeContract({
-    address: addresses().contracts.Pool,
+export async function setRunner(runner: Address): Promise<Hash> {
+  return write({ address: pool(), abi: poolAbi, functionName: "setRunner", args: [runner] } as never);
+}
+
+export async function predictionOnChain(poolId: bigint, agentId: bigint, fixtureId: bigint): Promise<Bytes32> {
+  return createArcPublicClient().readContract({
+    address: pool(),
     abi: poolAbi,
-    functionName: "finalize",
-    args: [poolId],
+    functionName: "predictionHash",
+    args: [poolId, agentId, fixtureId],
   });
-  return send(tx);
+}
+
+/** Commit a prediction hash before kickoff (treasury acts as the authorized runner). */
+export async function recordPredictionOnChain(poolId: bigint, agentId: bigint, fixtureId: bigint, hash: Bytes32): Promise<Hash> {
+  return write({ address: pool(), abi: poolAbi, functionName: "recordPrediction", args: [poolId, agentId, fixtureId, hash] } as never);
+}
+
+export async function resultOnChain(poolId: bigint, fixtureId: bigint): Promise<{ resolved: boolean; homeScore: number; awayScore: number }> {
+  const [resolved, homeScore, awayScore] = await createArcPublicClient().readContract({
+    address: pool(),
+    abi: poolAbi,
+    functionName: "results",
+    args: [poolId, fixtureId],
+  });
+  return { resolved, homeScore, awayScore };
+}
+
+export async function resolveFixtureOnChain(poolId: bigint, fixtureId: bigint, home: number, away: number): Promise<Hash> {
+  return write({ address: pool(), abi: poolAbi, functionName: "resolveFixture", args: [poolId, fixtureId, home, away] } as never);
+}
+
+export async function scoreOnChain(poolId: bigint, agentId: bigint): Promise<bigint> {
+  return createArcPublicClient().readContract({ address: pool(), abi: poolAbi, functionName: "agentScore", args: [poolId, agentId] });
+}
+
+export async function recordScoreOnChain(poolId: bigint, agentId: bigint, cumulative: bigint): Promise<Hash> {
+  return write({ address: pool(), abi: poolAbi, functionName: "recordScore", args: [poolId, agentId, cumulative] } as never);
+}
+
+export async function finalizePool(poolId: bigint): Promise<Hash> {
+  return write({ address: pool(), abi: poolAbi, functionName: "finalize", args: [poolId] } as never);
 }
