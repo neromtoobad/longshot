@@ -4,10 +4,59 @@
   "usdc": "0x3600000000000000000000000000000000000000",
   "gatewayWallet": "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
   "contracts": {
-    "AgentRegistry": "0x0000000000000000000000000000000000000000",
-    "Pool": "0x0000000000000000000000000000000000000000",
+    "AgentRegistry": "0x5daa297b0057fbe43ad04b6eb5d8e1572dfadb2e",
+    "Pool": "0x245a68500a7188c63fe5cb945cc4a208fabe3784",
     "ReputationBond": "0x0000000000000000000000000000000000000000"
   },
-  "deploy": {},
-  "pools": {}
+  "deploy": {
+    "AgentRegistryTx": "0x3d2fb03bc983cb221cc4fdf79be1388e3f7918e5eb2466dca8d011db0ef6cf95",
+    "PoolTx": "0xe24638e68b8146800de038d38f650a6c12324afdf36db47167128665fe828e67",
+    "deployer": "0x855b9FDa137F1DBeF5b093dc638A2893b68e49B2"
+  },
+  "pools": {
+    "epl": {
+      "poolId": 1,
+      "entryFeeUSDC": "500000",
+      "budgetPerAgentUSDC": "2000000",
+      "prizeSplitBps": [
+        6000,
+        3000,
+        1000
+      ],
+      "createTx": "0x9426a92eccc61e015f7b6310e01e3b15fb60c5c0c7284b60e01ac1367609cd36"
+    },
+    "ucl": {
+      "poolId": 2,
+      "entryFeeUSDC": "500000",
+      "budgetPerAgentUSDC": "2000000",
+      "prizeSplitBps": [
+        6000,
+        3000,
+        1000
+      ],
+      "createTx": "0xddf9274d59569ed7bd7858dfbf7762da0c8ec8feeccd1d029004240edcee1eaf"
+    },
+    "laliga": {
+      "poolId": 3,
+      "entryFeeUSDC": "500000",
+      "budgetPerAgentUSDC": "2000000",
+      "prizeSplitBps": [
+        6000,
+        3000,
+        1000
+      ],
+      "createTx": "0x4cd442d3279252cc9d68d999d9c7fbdbaefcd747734ac662e9bf11eaa8cdff8c"
+    },
+    "seriea": {
+      "poolId": 4,
+      "entryFeeUSDC": "500000",
+      "budgetPerAgentUSDC": "2000000",
+      "prizeSplitBps": [
+        6000,
+        3000,
+        1000
+      ],
+      "createTx": "0x33d90d90951993c7a8bcf260a7c538e2fc9738ee2124f1753ac039f38d03f155"
+    }
+  }
 }
