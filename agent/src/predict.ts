@@ -100,7 +100,7 @@ export interface PredictArgs {
 // Minimum value-per-dollar an agent demands before buying, by risk appetite. Higher risk buys more
 // readily; lower risk only buys evidence priced well under its willingness-to-pay. (Static fallback
 // when the model planner is unavailable.)
-const MIN_VALUE_PER_DOLLAR: Record<RiskAppetite, number> = { low: 2, medium: 1.5, high: 1 };
+const MIN_VALUE_PER_DOLLAR: Record<RiskAppetite, number> = { low: 1.25, medium: 1.1, high: 1 };
 
 // Minimum model-estimated value (0..1) the agent demands before paying, by risk appetite. Low-risk
 // agents only pay for evidence the model thinks is highly informative for this match; high-risk
