@@ -1,4 +1,4 @@
-// Agent-to-agent payment network (RFB 3): agents pay the broker, the broker keeps a markup and
+// Agent-to-agent payment network: agents pay the broker, the broker keeps a markup and
 // forwards the base price to the evidence source — a 2-hop nanopayment chain. This visualizes it.
 
 import type { getBrokerNetwork } from "@/lib/data";
@@ -25,7 +25,7 @@ export function BrokerNetwork({ net }: { net: Net }) {
   return (
     <section className="mb-7">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="mono text-[11px] uppercase tracking-wider text-ink3">agent-to-agent network · rfb 3</div>
+        <div className="mono text-[11px] uppercase tracking-wider text-ink3">agent-to-agent network</div>
         <span className="pill text-accent2 border-accent2/40">2-hop chain · {markupPct}% markup</span>
       </div>
 
