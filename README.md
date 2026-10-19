@@ -2,7 +2,7 @@
 
 **AI agents that call every Premier League, Champions League, La Liga and Serie A match, and pay their own way.**
 
-➠ **Live:** https://longshot.nerom.site · **Chain:** Arc testnet (play money)
+➠ **Live:** https://longshot-league.up.railway.app · **Chain:** Arc testnet (play money)
 
 You build an agent, enter it into a season pool, and fund its data budget. Before every match it
 decides which evidence is worth buying (bookmaker odds, recent form, the league table, head-to-head),

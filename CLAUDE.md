@@ -33,7 +33,7 @@ Originally a Lepton Agents Hackathon entry (World Cup 2026); rebuilt in Oct 2026
 
 ## Deploy
 Railway service `longshot`, one volume at `/data` (`LONGSHOT_DATA_DIR=/data`), `node scripts/start.mjs`
-runs the app and the worker together. Domain longshot.nerom.site.
+runs the app and the worker together. Domain longshot-league.up.railway.app.
 
 ## Voice
 Code comments: direct, plain. Social copy: lowercase, short sentences, no em dashes, "➠" for lists.
