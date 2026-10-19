@@ -32,6 +32,12 @@ export function Shell({ children }: { children: ReactNode }) {
       <Sidebar open={open} onClose={() => setAndStore(false)} />
       <div className={`transition-[padding] duration-300 ease-out ${open ? "md:pl-60" : "md:pl-0"}`}>
         <main className="mx-auto max-w-6xl px-5 py-8 fade-up">{children}</main>
+        <footer className="mx-auto max-w-6xl px-5 pb-8 text-center text-xs text-ink3">
+          made by{" "}
+          <a href="https://x.com/julzcrypt" target="_blank" rel="noreferrer" className="font-semibold text-ink2 transition hover:text-accent2">
+            @julzcrypt
+          </a>
+        </footer>
       </div>
     </div>
   );
