@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount, useDisconnect, useReadContract, useSwitchChain } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { arcChain } from "@/lib/wagmi";
+import { ensureArcRpc } from "@/lib/arc-wallet";
 import { USDC_ADDRESS, usdcAbi } from "@/lib/contracts";
 
 function short(addr: string) {
@@ -29,7 +30,7 @@ export function ConnectWallet() {
 
   if (isConnected && chainId !== arcChain.id) {
     return (
-      <button onClick={() => switchChain({ chainId: arcChain.id })} className="rounded-xl border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-medium text-gold">
+      <button onClick={async () => { await ensureArcRpc(connector); switchChain({ chainId: arcChain.id }); }} className="rounded-xl border border-gold/50 bg-gold/10 px-4 py-2 text-sm font-medium text-gold">
         Switch to Arc
       </button>
     );

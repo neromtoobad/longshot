@@ -6,6 +6,7 @@ import { useAccount, useReadContract, useSignMessage } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { USDC_ADDRESS, usdcAbi } from "@/lib/contracts";
 import { arcChain } from "@/lib/wagmi";
+import { friendlyWalletError } from "@/lib/arc-wallet";
 import { Avatar } from "@/components/Avatar";
 import { AVATAR_STYLES, randomSeed } from "@/lib/avatar";
 
@@ -198,7 +199,7 @@ function EditForm({ agent: a, owner, onClose, onSaved }: { agent: MyAgent; owner
       if (!res.ok || json.error) throw new Error(json.error ?? "save failed");
       onSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "save failed");
+      setError(friendlyWalletError(e));
     } finally {
       setBusy(false);
     }

@@ -9,6 +9,7 @@ import { COMPETITIONS, hashTemplate, type AgentTemplate, type CompetitionKey } f
 import { Avatar } from "@/components/Avatar";
 import { AVATAR_STYLES, avatarUrl, randomSeed, SEED_POOL } from "@/lib/avatar";
 import { arcChain } from "@/lib/wagmi";
+import { ensureArcRpc, friendlyWalletError } from "@/lib/arc-wallet";
 import { POOL_ADDRESS, REGISTRY_ADDRESS, USDC_ADDRESS, poolAbi, poolConfig, registryAbi, usdcAbi } from "@/lib/contracts";
 
 const SOURCES = ["form", "odds", "table", "h2h"] as const;
@@ -250,7 +251,7 @@ export default function BuildPage() {
   const [result, setResult] = useState<{ agentId: string; onChainId: string; joinTx: string; wallet: string } | null>(null);
   const [league, setLeague] = useState<CompetitionKey>("epl");
 
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId, connector } = useAccount();
   const { switchChain } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
   const { writeContractAsync } = useWriteContract();
@@ -307,6 +308,8 @@ export default function BuildPage() {
     try {
       const template = buildTemplate();
       const templateHash = hashTemplate(template);
+      // Wallets that added Arc before its RPC moved send to a dead endpoint; repoint them first.
+      await ensureArcRpc(connector);
 
       // 1. A fresh wallet for the agent (key generated + encrypted server-side).
       setStep("wallet");
@@ -375,8 +378,7 @@ export default function BuildPage() {
       setStep("done");
       setResult({ agentId: saved.agentId, onChainId: agentId.toString(), joinTx, wallet: agentWallet });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(/rejected|denied/i.test(msg) ? "You rejected the transaction in your wallet." : msg.split("\n")[0].slice(0, 200));
+      setError(friendlyWalletError(e));
       setStep("idle");
     }
   }
@@ -612,7 +614,7 @@ export default function BuildPage() {
           ) : !poolCfg ? (
             <p className="text-sm text-gold">Pools aren&apos;t deployed yet. Check back shortly.</p>
           ) : !onArc ? (
-            <button type="button" onClick={() => switchChain({ chainId: arcChain.id })} className="rounded-xl border border-gold/50 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold">
+            <button type="button" onClick={async () => { await ensureArcRpc(connector); switchChain({ chainId: arcChain.id }); }} className="rounded-xl border border-gold/50 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold">
               Switch to Arc to continue
             </button>
           ) : (
