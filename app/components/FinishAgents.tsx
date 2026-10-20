@@ -6,7 +6,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Address } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useSignMessage, useWriteContract } from "wagmi";
+import { hashTemplate } from "@longshot/shared";
 import { COMPETITIONS, type AgentTemplate, type CompetitionKey } from "@longshot/shared";
 import { ARCHETYPES, GAS_RESERVE, matchPreset, templateFromForm, usdcStr } from "@/lib/archetypes";
 import { POOL_ADDRESS, USDC_ADDRESS, poolAbi, poolConfig, usdcAbi } from "@/lib/contracts";
@@ -29,6 +30,7 @@ function templateFor(p: Pending): AgentTemplate {
 function Row({ p, owner, onDone }: { p: Pending; owner: Address; onDone: () => void }) {
   const { connector } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
   const client = usePublicClient({ chainId: arcChain.id });
   const [league, setLeague] = useState<CompetitionKey>(p.league ?? "epl");
   const [step, setStep] = useState<string | null>(null);
@@ -63,6 +65,13 @@ function Row({ p, owner, onDone }: { p: Pending; owner: Address; onDone: () => v
           hash: await writeContractAsync({ address: USDC_ADDRESS, abi: usdcAbi, functionName: "transfer", args: [p.walletAddress as Address, fund] }),
         });
       }
+      // Only a strategy that differs from the on-chain commitment needs a (gas-free) signature.
+      let proof: { issuedAt?: string; signature?: string } = {};
+      if (hashTemplate(template) !== p.templateHash) {
+        setStep("sign to save…");
+        const issuedAt = new Date().toISOString();
+        proof = { issuedAt, signature: await signMessageAsync({ message: `LONGSHOT: save agent ${p.onChainAgentId}\nissued ${issuedAt}` }) };
+      }
       setStep("saving…");
       const res = await fetch("/api/agents", {
         method: "POST",
@@ -80,10 +89,11 @@ function Row({ p, owner, onDone }: { p: Pending; owner: Address; onDone: () => v
           owner,
           walletAddress: p.walletAddress,
           onChainAgentId: p.onChainAgentId,
+          ...proof,
         }),
       });
-      const json = (await res.json()) as { agentId?: string; error?: string };
-      if (!res.ok || !json.agentId) throw new Error(json.error ?? "could not save agent");
+      const json = (await res.json()) as { agentId?: string; error?: string; message?: string };
+      if (!res.ok || !json.agentId) throw new Error(json.message ?? json.error ?? "could not save agent");
       onDone();
     } catch (e) {
       setError(friendlyWalletError(e));

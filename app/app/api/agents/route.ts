@@ -3,7 +3,7 @@ import { COMPETITIONS, compileTemplate, competitionForPool, poolFor, type AgentT
 import { hasAgentKey } from "@longshot/shared/server";
 import { readAgents, saveAgent } from "@/lib/store";
 import { getMyAgents } from "@/lib/data";
-import { joinedPoolIds, registryAgent } from "@/lib/verify";
+import { joinedPoolIds, registryAgent, verifySave } from "@/lib/verify";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +81,12 @@ export async function POST(req: NextRequest) {
   if (poolId === undefined) {
     return NextResponse.json({ error: "this agent hasn't entered a pool yet; finish the entry step first" }, { status: 400 });
   }
+  // A template matching the on-chain commitment can only be the owner's own strategy. Anything else
+  // needs the owner's wallet signature, so nobody can save someone else's agent with a new strategy.
   const hashMatches = reg.templateHash === config.templateHash;
+  if (!hashMatches && !(await verifySave(onChainAgentId, owner, String(body.issuedAt ?? ""), String(body.signature ?? "")))) {
+    return NextResponse.json({ error: "needs-signature", message: "sign with your wallet to save this agent" }, { status: 401 });
+  }
 
   const av = (body.avatar ?? {}) as Record<string, unknown>;
   const avatar = typeof av.style === "string" && typeof av.seed === "string" && av.style && av.seed ? { style: av.style, seed: av.seed } : undefined;

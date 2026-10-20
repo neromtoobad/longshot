@@ -43,6 +43,22 @@ export function editMessage(agentId: string, issuedAt: string): string {
   return `LONGSHOT: edit agent ${agentId}\nissued ${issuedAt}`;
 }
 
+/** The message a wallet signs to save an agent whose template differs from its registration. */
+export function saveMessage(agentId: string, issuedAt: string): string {
+  return `LONGSHOT: save agent ${agentId}\nissued ${issuedAt}`;
+}
+
+/** True when `signature` is `owner`'s signature over the save message, issued in the last 10 min. */
+export async function verifySave(agentId: string, owner: string, issuedAt: string, signature: string): Promise<boolean> {
+  const t = new Date(issuedAt).getTime();
+  if (!Number.isFinite(t) || Math.abs(Date.now() - t) > 10 * 60 * 1000) return false;
+  try {
+    return await verifyMessage({ address: owner as Address, message: saveMessage(agentId, issuedAt), signature: signature as `0x${string}` });
+  } catch {
+    return false;
+  }
+}
+
 /** True when `signature` is `owner`'s signature over the edit message, issued in the last 10 min. */
 export async function verifyEdit(agentId: string, owner: string, issuedAt: string, signature: string): Promise<boolean> {
   const t = new Date(issuedAt).getTime();
