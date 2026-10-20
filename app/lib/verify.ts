@@ -57,3 +57,58 @@ export async function verifyEdit(agentId: string, owner: string, issuedAt: strin
     return false;
   }
 }
+
+const ownerAbi = [
+  {
+    type: "function",
+    name: "agentsByOwner",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ type: "uint256[]" }],
+  },
+] as const;
+
+const joinedAbi = [
+  {
+    type: "function",
+    name: "joined",
+    stateMutability: "view",
+    inputs: [{ type: "uint256" }, { type: "uint256" }],
+    outputs: [{ type: "bool" }],
+  },
+] as const;
+
+/** On-chain agent ids registered by an owner (oldest first). */
+export async function agentIdsByOwner(owner: string): Promise<bigint[]> {
+  try {
+    const ids = await createArcPublicClient().readContract({
+      address: ADDRESSES.contracts.AgentRegistry,
+      abi: ownerAbi,
+      functionName: "agentsByOwner",
+      args: [owner as Address],
+    });
+    return [...ids];
+  } catch {
+    return [];
+  }
+}
+
+/** The on-chain pool ids an agent has joined (normally zero or one). */
+export async function joinedPoolIds(agentId: string): Promise<number[]> {
+  const out: number[] = [];
+  for (const p of Object.values(ADDRESSES.pools)) {
+    if (!p) continue;
+    try {
+      const ok = await createArcPublicClient().readContract({
+        address: ADDRESSES.contracts.Pool,
+        abi: joinedAbi,
+        functionName: "joined",
+        args: [BigInt(p.poolId), BigInt(agentId)],
+      });
+      if (ok) out.push(p.poolId);
+    } catch {
+      /* skip */
+    }
+  }
+  return out;
+}

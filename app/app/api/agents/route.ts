@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { COMPETITIONS, compileTemplate, poolFor, type AgentTemplate, type EvidenceSource } from "@longshot/shared";
+import { COMPETITIONS, compileTemplate, competitionForPool, poolFor, type AgentTemplate, type EvidenceSource } from "@longshot/shared";
 import { hasAgentKey } from "@longshot/shared/server";
 import { readAgents, saveAgent } from "@/lib/store";
 import { getMyAgents } from "@/lib/data";
-import { registryAgent } from "@/lib/verify";
+import { joinedPoolIds, registryAgent } from "@/lib/verify";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +16,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ agents: getMyAgents(owner) });
 }
 
-// Save an agent after the browser has registered it on-chain. The registry is the source of truth:
-// the owner, the agent wallet and the template hash must all match what was registered.
+// Save an agent after the browser has registered and entered it on-chain. The chain is the source
+// of truth for who owns it, which wallet it pays from and which pool it is in. The template hash is
+// checked too; a mismatch is still accepted (the owner and wallet already prove it is theirs) so an
+// agent can always be finished, and the mismatch is recorded.
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -27,14 +29,15 @@ export async function POST(req: NextRequest) {
   }
 
   const league = COMPETITIONS.find((c) => c.key === body.league);
-  const pool = league ? poolFor(league.key) : undefined;
-  if (!league || !pool) return NextResponse.json({ error: "unknown league" }, { status: 400 });
+  if (body.league !== undefined && !league) return NextResponse.json({ error: "unknown league" }, { status: 400 });
 
+  // Keep every source exactly as the builder sent it, "0" included: the on-chain template hash was
+  // computed over all four, so dropping the zeros changes the hash.
   const willingnessToPay: Partial<Record<EvidenceSource, string>> = {};
   const wtp = (body.willingnessToPay ?? {}) as Record<string, unknown>;
   for (const s of SOURCES) {
     const v = wtp[s];
-    if (typeof v === "string" && v !== "" && v !== "0") willingnessToPay[s] = v;
+    willingnessToPay[s] = typeof v === "string" && /^\d+$/.test(v) ? v : "0";
   }
 
   const template: AgentTemplate = {
@@ -68,9 +71,17 @@ export async function POST(req: NextRequest) {
   const reg = await registryAgent(onChainAgentId);
   if (!reg) return NextResponse.json({ error: `agent #${onChainAgentId} is not registered on-chain` }, { status: 400 });
   const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-  if (!same(reg.owner, owner) || !same(reg.walletAddress, walletAddress) || reg.templateHash !== config.templateHash) {
-    return NextResponse.json({ error: "on-chain registration does not match this agent" }, { status: 400 });
+  if (!same(reg.owner, owner)) return NextResponse.json({ error: "this agent is registered to a different wallet" }, { status: 403 });
+  if (!same(reg.walletAddress, walletAddress)) return NextResponse.json({ error: "agent wallet does not match the registration" }, { status: 400 });
+
+  // The pool comes from the chain: whichever league this agent actually entered.
+  const joined = await joinedPoolIds(onChainAgentId);
+  const wanted = league ? poolFor(league.key) : undefined;
+  const poolId = wanted && joined.includes(wanted.poolId) ? wanted.poolId : joined[0];
+  if (poolId === undefined) {
+    return NextResponse.json({ error: "this agent hasn't entered a pool yet; finish the entry step first" }, { status: 400 });
   }
+  const hashMatches = reg.templateHash === config.templateHash;
 
   const av = (body.avatar ?? {}) as Record<string, unknown>;
   const avatar = typeof av.style === "string" && typeof av.seed === "string" && av.style && av.seed ? { style: av.style, seed: av.seed } : undefined;
@@ -78,7 +89,7 @@ export async function POST(req: NextRequest) {
   const agent = saveAgent({
     agentId: `u${onChainAgentId}`,
     owner,
-    poolId: String(pool.poolId),
+    poolId: String(poolId),
     walletAddress,
     onChainAgentId,
     avatar,
@@ -94,5 +105,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ agentId: agent.agentId, templateHash: config.templateHash });
+  return NextResponse.json({
+    agentId: agent.agentId,
+    league: competitionForPool(String(poolId)),
+    templateHash: config.templateHash,
+    hashMatches,
+  });
 }

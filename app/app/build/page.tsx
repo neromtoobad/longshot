@@ -12,116 +12,23 @@ import { arcChain } from "@/lib/wagmi";
 import { ensureArcRpc, friendlyWalletError } from "@/lib/arc-wallet";
 import { POOL_ADDRESS, REGISTRY_ADDRESS, USDC_ADDRESS, poolAbi, poolConfig, registryAbi, usdcAbi } from "@/lib/contracts";
 
-const SOURCES = ["form", "odds", "table", "h2h"] as const;
-const SOURCE_LABEL: Record<(typeof SOURCES)[number], string> = { form: "Form", odds: "Odds", table: "Table", h2h: "Head-to-head" };
-const SOURCE_HINT: Record<(typeof SOURCES)[number], string> = {
-  form: "last five results, goals for and against",
-  odds: "bookmaker 1X2 + over/under, vig removed",
-  table: "league position, points per game",
-  h2h: "recent meetings between the two",
-};
-// Agent wallets keep a little USDC back to pay their own Gateway deposit gas.
-const GAS_RESERVE = 50_000n;
-type Source = (typeof SOURCES)[number];
-type Risk = "low" | "medium" | "high";
-type SourceState = { on: boolean; wtp: string };
-type Form = {
-  name: string;
-  persona: string;
-  prompt: string;
-  risk: Risk;
-  budget: string;
-  broker: boolean;
-  avatarStyle: string;
-  avatarSeed: string;
-  sources: Record<Source, SourceState>;
-};
-
-const ARCHETYPES: { key: string; emoji: string; blurb: string; form: Form }[] = [
-  {
-    key: "Market Reader",
-    emoji: "📈",
-    blurb: "trusts the bookmakers",
-    form: {
-      name: "Market Reader", avatarStyle: "bottts-neutral", avatarSeed: "halo",
-      persona: "A disciplined favourite-backer who trusts the market over any story.",
-      prompt: "Predict the exact score. Treat the market's probabilities as the truth; only move off them with a strong reason from the table.",
-      risk: "low", budget: "2", broker: false,
-      sources: { form: { on: false, wtp: "0" }, odds: { on: true, wtp: "0.006" }, table: { on: true, wtp: "0.003" }, h2h: { on: false, wtp: "0" } },
-    },
-  },
-  {
-    key: "Form Sniper",
-    emoji: "🎯",
-    blurb: "recent form, dead cheap",
-    form: {
-      name: "Form Sniper", avatarStyle: "pixel-art", avatarSeed: "ion",
-      persona: "A specialist who reads recent form only and refuses to overpay for noise.",
-      prompt: "Predict the exact score from each side's last five matches. Ignore reputations and the market.",
-      risk: "medium", budget: "1", broker: false,
-      sources: { form: { on: true, wtp: "0.005" }, odds: { on: false, wtp: "0" }, table: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
-    },
-  },
-  {
-    key: "Upset Hunter",
-    emoji: "🎲",
-    blurb: "backs the longshot",
-    form: {
-      name: "Upset Hunter", avatarStyle: "bottts", avatarSeed: "saber",
-      persona: "A contrarian who hunts upsets when the cheap signals disagree with the favourite.",
-      prompt: "Predict the exact score. When form and history contradict the table, back the underdog.",
-      risk: "high", budget: "1", broker: true,
-      sources: { form: { on: true, wtp: "0.004" }, odds: { on: false, wtp: "0" }, table: { on: true, wtp: "0.003" }, h2h: { on: true, wtp: "0.003" } },
-    },
-  },
-  {
-    key: "Data Maximalist",
-    emoji: "🧠",
-    blurb: "buys everything, every match",
-    form: {
-      name: "Data Maximalist", avatarStyle: "bottts-neutral", avatarSeed: "pulse",
-      persona: "A data maximalist who buys every signal and weighs them all.",
-      prompt: "Predict the exact score using every piece of evidence you bought. Be decisive.",
-      risk: "high", budget: "3", broker: true,
-      sources: { form: { on: true, wtp: "0.006" }, odds: { on: true, wtp: "0.006" }, table: { on: true, wtp: "0.004" }, h2h: { on: true, wtp: "0.004" } },
-    },
-  },
-  {
-    key: "Table Climber",
-    emoji: "🪜",
-    blurb: "the table never lies",
-    form: {
-      name: "Table Climber", avatarStyle: "thumbs", avatarSeed: "lux",
-      persona: "A season-long thinker who trusts points per game over one-off results.",
-      prompt: "Predict the exact score from the league table. The better side over the season usually wins.",
-      risk: "low", budget: "0.5", broker: false,
-      sources: { form: { on: false, wtp: "0" }, odds: { on: false, wtp: "0" }, table: { on: true, wtp: "0.003" }, h2h: { on: false, wtp: "0" } },
-    },
-  },
-  {
-    key: "Coinflip Kid",
-    emoji: "🪙",
-    blurb: "buys nothing, rides on gut",
-    form: {
-      name: "Coinflip Kid", avatarStyle: "fun-emoji", avatarSeed: "nova",
-      persona: "A reckless gambler who buys no data and predicts on instinct, chasing infinite ROI.",
-      prompt: "Predict the exact score from your prior alone. Be bold.",
-      risk: "high", budget: "0", broker: false,
-      sources: { form: { on: false, wtp: "0" }, odds: { on: false, wtp: "0" }, table: { on: false, wtp: "0" }, h2h: { on: false, wtp: "0" } },
-    },
-  },
-];
-
-const ADJ = ["Neon", "Quantum", "Rogue", "Velvet", "Iron", "Solar", "Phantom", "Turbo", "Cosmic", "Feral", "Gilded", "Hyper", "Atomic", "Lunar", "Crimson", "Static"];
-const NOUN = ["Jackal", "Magpie", "Oracle", "Comet", "Bandit", "Sphinx", "Falcon", "Cobra", "Maverick", "Nomad", "Specter", "Vulcan", "Reaper", "Drake", "Hydra", "Vandal"];
-
-function toBaseUnits(v: string): string {
-  const n = parseFloat(v);
-  if (!Number.isFinite(n) || n <= 0) return "0";
-  return String(Math.round(n * 1_000_000));
-}
-const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
-const usdcStr = (v: bigint) => (Number(v) / 1_000_000).toFixed(2).replace(/\.?0+$/, "") || "0";
+import {
+  ADJ,
+  ARCHETYPES,
+  BUDGET_PRESETS,
+  GAS_RESERVE,
+  NOUN,
+  SOURCES,
+  SOURCE_HINT,
+  SOURCE_LABEL,
+  clamp,
+  templateFromForm,
+  toBaseUnits,
+  usdcStr,
+  type Form,
+  type Source,
+  type SourceState,
+} from "@/lib/archetypes";
 
 // ── gamified card maths: turn a strategy into FIFA-style stats + an overall rating + a rarity ──
 type Rarity = "bronze" | "silver" | "gold" | "icon";
@@ -285,18 +192,7 @@ export default function BuildPage() {
   }
 
   function buildTemplate(): AgentTemplate {
-    return {
-      name: f.name,
-      prompt: f.prompt,
-      persona: f.persona,
-      riskAppetite: f.risk,
-      dataPreference: {
-        preferBroker: f.broker,
-        willingnessToPay: Object.fromEntries(SOURCES.map((s) => [s, f.sources[s].on ? toBaseUnits(f.sources[s].wtp) : "0"])),
-      },
-      modelProvider: "default",
-      budget: toBaseUnits(f.budget),
-    };
+    return templateFromForm(f);
   }
 
   async function create() {
@@ -304,6 +200,7 @@ export default function BuildPage() {
     const owner = address;
     const client = publicClient;
     setError(null);
+    let registered = false;
 
     try {
       const template = buildTemplate();
@@ -335,6 +232,7 @@ export default function BuildPage() {
         }
       }
       if (agentId === undefined) throw new Error("could not read agentId from registration");
+      registered = true;
 
       // 3-4. Approve + pay the entry into the league's prize pool.
       if (entryFee > 0n) {
@@ -378,7 +276,8 @@ export default function BuildPage() {
       setStep("done");
       setResult({ agentId: saved.agentId, onChainId: agentId.toString(), joinTx, wallet: agentWallet });
     } catch (e) {
-      setError(friendlyWalletError(e));
+      // Once registered, a failure later on is resumable from My Agents (no second registration).
+      setError(friendlyWalletError(e) + (registered ? " Your agent is already registered: open My Agents and press Finish setup to resume." : ""));
       setStep("idle");
     }
   }
@@ -578,7 +477,7 @@ export default function BuildPage() {
             <div className={lbl}>season data budget (USDC)</div>
             <p className="mt-1 text-[11px] text-ink3">A full season is roughly 380 league matches. At a few tenths of a cent per signal, 1-3 USDC covers it.</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {["0", "0.5", "1", "2", "3"].map((b) => (
+              {BUDGET_PRESETS.map((b) => (
                 <button
                   key={b}
                   type="button"

@@ -8,6 +8,7 @@ import { USDC_ADDRESS, usdcAbi } from "@/lib/contracts";
 import { arcChain } from "@/lib/wagmi";
 import { friendlyWalletError } from "@/lib/arc-wallet";
 import { Avatar } from "@/components/Avatar";
+import { FinishAgents } from "@/components/FinishAgents";
 import { AVATAR_STYLES, randomSeed } from "@/lib/avatar";
 
 const SOURCES = ["form", "odds", "table", "h2h"] as const;
@@ -84,6 +85,8 @@ export default function MePage() {
         </div>
         <Link href="/build" className="rounded-xl bg-accent px-4 py-2 text-sm font-bold text-white transition hover:opacity-90">+ Build another</Link>
       </div>
+
+      <FinishAgents owner={address} onFinished={load} />
 
       {agents === null ? (
         <div className="glass mt-5 p-8 text-center text-sm text-ink2">loading…</div>
